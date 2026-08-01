@@ -1,0 +1,44 @@
+# Emberforge example configuration.
+# Everything here is research-only. Nothing in this file can place a trade or
+# touch Project Geld.
+
+data:
+  provider: synthetic        # synthetic | csv | parquet | geld_readonly
+  seed: 7
+  n_symbols: 12
+  n_days: 400
+  # csv_dir: ./examples/csv  # used when provider == csv
+  # geld_sqlite: ../project-geld/data/geld.sqlite3   # READ-ONLY adapter only
+
+evaluation:
+  horizon: 1                 # forward-return horizon in bars
+  quantiles: 5
+  cost_bps: 5.0
+
+preprocess:
+  min_coverage: 0.5
+  winsorize_p: 0.02
+  normalize: true
+  neutralize: false
+  execution_lag: 0
+
+holdout:
+  train_fraction: 0.6
+  valid_fraction: 0.2
+  # remainder is the locked test window
+
+budget:
+  max_candidates: 200
+  max_holdout_access: 3
+  max_mutations_per_lineage: 10
+
+promotion:
+  min_abs_mean_ic: 0.01
+  min_abs_t_stat: 2.0
+  max_turnover: 0.9
+  require_fdr_reject: true
+  min_dsr: 0.60
+  max_correlation: 0.7
+
+registry:
+  path: runtime/registry.sqlite3
