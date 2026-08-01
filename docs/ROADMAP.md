@@ -43,10 +43,22 @@ Still open in this track:
   opt-in via `pip install 'emberforge[llm]'`, structured-JSON output, refusal
   handling; the core stays fully offline.
 
-Still open:
+## Phase C+ — completed extras
 
-* Combinatorial purged cross-validation (CPCV) as an alternative to CSCV PBO.
-* Transaction-cost and capacity modelling beyond the current bps proxy.
+* ✅ **Combinatorial Purged CV** (`stats.cpcv`) — a second PBO estimate over
+  combinatorial backtest paths, reported alongside CSCV PBO.
+* ✅ **Cost & capacity model** (`analytics.costs`) — commission + half-spread +
+  √-participation market impact + short borrow, with a bisection **capacity**
+  estimate and a cost-sensitivity curve, surfaced in every candidate report.
+  See [COST_AND_CAPACITY.md](COST_AND_CAPACITY.md).
+* ✅ **AI generation wired into the research agent** — the agent optionally asks
+  an `LLMProvider` (mock or Anthropic) for candidates, validated like any other.
+
+## Remaining / future
+
+* Richer capacity model: per-name ADV time series and venue-calibrated impact.
+* Alternative CPCV path aggregation (per-path performance distributions, not just
+  the PBO summary).
 
 ## Phase D — interoperability
 

@@ -76,10 +76,31 @@ emberforge research-agent run --families momentum,volatility --budget 40
 ```
 
 **What it does:** picks the *least-explored* family (from registry trial counts),
-seeds candidates from templates, screens them on the **development window only**,
-mutates the most promising near-misses (bounded per lineage), runs one family
-study (which records every experiment and applies the full statistical gauntlet),
-and returns a report.
+seeds candidates from templates, **optionally asks an LLM provider for a few
+structured-JSON candidates** in that family, screens them on the **development
+window only**, mutates the most promising near-misses (bounded per lineage), runs
+one family study (which records every experiment and applies the full statistical
+gauntlet), and returns a report.
+
+**AI generation is wired in and opt-in.** Pass an `ai_provider` to the agent (the
+offline `MockProvider`, or the networked `AnthropicProvider`):
+
+```python
+from emberforge.generate import MockProvider   # or AnthropicProvider
+agent = ResearchAgent(data, registry, ai_provider=MockProvider())  # offline
+report = agent.run(families=["volatility"])
+```
+
+```bash
+emberforge research-agent run --ai mock                 # offline, exercises the path
+emberforge research-agent run --ai anthropic --ai-model claude-opus-5   # real LLM
+```
+
+AI proposals are best-effort — malformed JSON, a schema miss, a refusal, or a
+non-causal expression is caught and skipped, never crashing the run — and every
+accepted proposal passes through the same `parse → validate → causality`
+pipeline as any other factor before it can become an experiment. Their
+experiments are tagged `generator = "ai"` in the registry.
 
 **May:** inspect prior experiments, identify underexplored families, propose
 candidates, run development-period tests, review failures, propose limited

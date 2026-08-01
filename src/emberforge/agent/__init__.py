@@ -27,7 +27,7 @@ from ..analytics.ic import ic_series
 from ..compute import compute_factor
 from ..data.schema import MarketData
 from ..dsl.spec import FactorSpec
-from ..generate import generate_templates, mutate_family
+from ..generate import generate_ai, generate_templates, mutate_family
 from ..generate.templates import TEMPLATES
 from ..registry import ExperimentRegistry
 from ..registry.holdout import HoldoutGovernor, ResearchBudget, split_by_fraction
@@ -73,6 +73,8 @@ class ResearchAgent:
         valid_fraction: float = 0.2,
         criteria: PromotionCriteria = PromotionCriteria(),
         seed: int = 0,
+        ai_provider=None,
+        n_ai_candidates: int = 2,
     ):
         self.data = data
         self.registry = registry
@@ -80,6 +82,11 @@ class ResearchAgent:
         self.horizon = horizon
         self.criteria = criteria
         self.seed = seed
+        # Optional LLM provider (mock or Anthropic). When set, the agent asks it
+        # for a few structured-JSON candidates per run; every proposal still goes
+        # through the same causal-validation pipeline as any other factor.
+        self.ai_provider = ai_provider
+        self.n_ai_candidates = n_ai_candidates
         # Development window = train + validation. The locked test (the remainder)
         # is never handed to the agent.
         split = split_by_fraction(data.index, train_fraction, valid_fraction)
@@ -114,6 +121,7 @@ class ResearchAgent:
         # screen seeds on the development window and mutate the best few
         scored = sorted(seeds, key=lambda s: abs(self._screen_ic(s)), reverse=True)
         proposed = list(seeds)
+        proposed.extend(self._propose_ai(family, room - len(proposed)))
         remaining = room - len(proposed)
         for parent in scored[:2]:
             if remaining <= 0:
@@ -124,7 +132,35 @@ class ResearchAgent:
             muts = [m for m in muts if m.expression_hash not in existing]
             proposed.extend(muts)
             remaining = room - len(proposed)
-        return proposed[:room]
+        # de-dup by expression hash, preserve order
+        seen: set[str] = set()
+        unique: list[FactorSpec] = []
+        for s in proposed:
+            if s.expression_hash not in seen:
+                seen.add(s.expression_hash)
+                unique.append(s)
+        return unique[:room]
+
+    def _propose_ai(self, family: str, room: int) -> list[FactorSpec]:
+        """Ask the LLM provider for a bounded number of validated candidates.
+
+        AI proposals are best-effort: malformed JSON, a schema miss, a refusal,
+        or a non-causal expression is caught and skipped, never crashing the run.
+        """
+        if self.ai_provider is None or room <= 0:
+            return []
+        out: list[FactorSpec] = []
+        context = (
+            f"Family under study: {family}. Propose a distinct cross-sectional "
+            f"equity factor in this family that may survive costs."
+        )
+        for i in range(min(self.n_ai_candidates, room)):
+            try:
+                spec = generate_ai(f"{context} (idea #{i})", provider=self.ai_provider)
+                out.append(spec)
+            except Exception:
+                continue
+        return out
 
     # -- main loop -----------------------------------------------------------
     def run(self, families: list[str] | None = None) -> AgentRunReport:

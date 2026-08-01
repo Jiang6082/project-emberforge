@@ -142,7 +142,8 @@ This is enforced by tests, not just convention. See
 | [SCIENTIFIC_METHOD.md](docs/SCIENTIFIC_METHOD.md) | The anti-self-deception design |
 | [FACTOR_DSL.md](docs/FACTOR_DSL.md) | The declarative factor language |
 | [EXPERIMENT_REGISTRY.md](docs/EXPERIMENT_REGISTRY.md) | Lineage, trial counts, holdout governance |
-| [MULTIPLE_TESTING.md](docs/MULTIPLE_TESTING.md) | BH, Holm, Deflated Sharpe, PBO, bootstrap |
+| [MULTIPLE_TESTING.md](docs/MULTIPLE_TESTING.md) | BH, Holm, Deflated Sharpe, PBO (CSCV/CPCV), White RC, Hansen SPA, bootstrap |
+| [COST_AND_CAPACITY.md](docs/COST_AND_CAPACITY.md) | Transaction-cost decomposition & capacity estimate |
 | [AI_RESEARCH_AGENT.md](docs/AI_RESEARCH_AGENT.md) | AI generation & the constrained agent |
 | [PROJECT_GELD_INTERFACE_NOTES.md](docs/PROJECT_GELD_INTERFACE_NOTES.md) | What Geld is; the boundary |
 | [CANDIDATE_BUNDLE.md](docs/CANDIDATE_BUNDLE.md) | The offline export format |
@@ -168,7 +169,12 @@ data-snooping tests), plus an optional real LLM provider
 (`AnthropicProvider`, `claude-opus-5`) behind the same protocol as the offline
 mock — install with `pip install 'emberforge[llm]'`; the core stays offline.
 
-**92 tests passing.** See [ROADMAP.md](docs/ROADMAP.md).
+**Phase C+ complete** — combinatorial purged cross-validation (a second PBO
+estimate), a transaction-cost & capacity model (spread + √-participation market
+impact + borrow, with a capacity estimate and cost-sensitivity curve), and
+AI-assisted generation wired into the research agent (mock offline, or Anthropic).
+
+**109 tests passing.** See [ROADMAP.md](docs/ROADMAP.md).
 
 ## Disclaimer
 

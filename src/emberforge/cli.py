@@ -126,7 +126,17 @@ def cmd_research_agent_run(args) -> int:
 
     data = make_synthetic(seed=args.seed, n_days=args.n_days)
     reg = ExperimentRegistry(args.registry)
-    agent = ResearchAgent(data, reg, budget=ResearchBudget(max_candidates=args.budget), seed=args.seed)
+    provider = None
+    if getattr(args, "ai", None) == "mock":
+        from .generate import MockProvider
+
+        provider = MockProvider()
+    elif getattr(args, "ai", None) == "anthropic":
+        from .generate import AnthropicProvider
+
+        provider = AnthropicProvider(model=args.ai_model)
+    agent = ResearchAgent(data, reg, budget=ResearchBudget(max_candidates=args.budget),
+                          seed=args.seed, ai_provider=provider)
     families = args.families.split(",") if args.families else None
     report = agent.run(families=families)
     print(json.dumps(report.summary(), indent=2, default=str))
@@ -181,6 +191,9 @@ def build_parser() -> argparse.ArgumentParser:
     rar.add_argument("--budget", type=int, default=40)
     rar.add_argument("--seed", type=int, default=7)
     rar.add_argument("--n-days", dest="n_days", type=int, default=400)
+    rar.add_argument("--ai", choices=["mock", "anthropic"], default=None,
+                     help="also propose LLM-generated candidates (mock = offline)")
+    rar.add_argument("--ai-model", default="claude-opus-5")
     rar.set_defaults(func=cmd_research_agent_run)
 
     dm = sub.add_parser("demo", help="run the end-to-end demonstration")

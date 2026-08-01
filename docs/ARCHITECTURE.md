@@ -42,8 +42,8 @@ tested and replaced in isolation.
 | `dsl/` | Expression nodes, parser, operator registry, canonicalization/hashing, causality validation, `FactorSpec` |
 | `data/` | `MarketData` panel + provenance/fingerprint, synthetic generator, CSV/Parquet + read-only Geld loaders |
 | `compute/` | Causal evaluation engine, preprocessing pipeline, data-driven look-ahead detector |
-| `analytics/` | IC statistics + decay, quantile analytics, diagnostic long-short portfolios, `evaluate_factor` |
-| `stats/` | Benjamini–Hochberg, Holm, Deflated Sharpe, PBO (CSCV), circular block bootstrap |
+| `analytics/` | IC statistics + decay, quantile analytics, diagnostic long-short portfolios, cost & capacity model, `evaluate_factor` |
+| `stats/` | Benjamini–Hochberg, Holm, Deflated Sharpe, PBO (CSCV **and** CPCV), White's Reality Check, Hansen's SPA, purged/embargoed CV, circular block bootstrap |
 | `dedup/` | Syntactic (hash), empirical (correlation), semantic (family) dedup + novelty report |
 | `registry/` | SQLite experiment registry, lineage, git provenance, holdout governance & budgets |
 | `universe/` | Point-in-time universe membership (static/PIT/survivorship/research-only), PIT-safe eligibility |

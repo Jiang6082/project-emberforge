@@ -6,9 +6,12 @@ from dataclasses import asdict, dataclass, field
 
 import pandas as pd
 
+import numpy as np
+
 from ..compute import PreprocessConfig, compute_factor
 from ..data.schema import MarketData
 from ..dsl.spec import FactorSpec
+from .costs import CapacityEstimate, CostModel, cost_sensitivity, estimate_capacity
 from .ic import ICStats, ic_decay, ic_series, ic_stats
 from .portfolio import (
     PortfolioStats,
@@ -19,10 +22,13 @@ from .portfolio import (
     turnover,
 )
 
+TRADING_DAYS = 252
+
 __all__ = [
     "ic_series", "ic_stats", "ic_decay", "ICStats",
     "quantile_returns", "long_short_returns", "turnover", "score_autocorr",
     "portfolio_stats", "PortfolioStats",
+    "CostModel", "CapacityEstimate", "estimate_capacity", "cost_sensitivity",
     "FactorEvaluation", "evaluate_factor",
 ]
 
@@ -37,6 +43,8 @@ class FactorEvaluation:
     coverage: float
     autocorr: float
     ls_returns: pd.Series = field(repr=False)
+    capacity_usd: float = float("nan")
+    cost_sensitivity: dict = field(default_factory=dict)
 
     def to_metrics(self) -> dict:
         """Flat, JSON-serializable metric dict for the registry and reports."""
@@ -55,6 +63,8 @@ class FactorEvaluation:
             "spread": self.portfolio.spread,
             "coverage": self.coverage,
             "autocorr": self.autocorr,
+            "capacity_usd": self.capacity_usd,
+            "cost_sensitivity": self.cost_sensitivity,
             "ic_decay": self.ic_decay,
         }
 
@@ -77,13 +87,32 @@ def evaluate_factor(
         eligibility = universe.eligibility(data.index, data.symbols)
     scores = compute_factor(spec, data, preprocess, eligibility=eligibility)
     fwd = data.forward_returns(horizon)
+    pstats = portfolio_stats(scores, fwd, q=q, cost_bps=cost_bps)
+    ls = long_short_returns(scores, fwd, q)
+
+    # capacity & cost sensitivity from a liquidity proxy (average daily $ volume)
+    gross = float(ls.mean()) if len(ls) else float("nan")
+    try:
+        dollar_vol = (data.field("volume") * data.field("close"))
+        if eligibility is not None:
+            dollar_vol = dollar_vol.where(eligibility.reindex_like(dollar_vol).fillna(False))
+        adv_usd = float(np.nanmedian(dollar_vol.values))
+    except Exception:
+        adv_usd = float("nan")
+    n_positions = max(2, 2 * (len(data.symbols) // q))
+    cap = estimate_capacity(gross, adv_usd, pstats.turnover if pstats.turnover == pstats.turnover else 0.5, n_positions)
+    cost_sens = cost_sensitivity(pstats.sharpe, gross, pstats.ann_vol,
+                                 pstats.turnover if pstats.turnover == pstats.turnover else 0.5)
+
     return FactorEvaluation(
         factor_id=spec.factor_id,
         expression_hash=spec.expression_hash,
         ic=ic_stats(scores, fwd),
         ic_decay=ic_decay(scores, data),
-        portfolio=portfolio_stats(scores, fwd, q=q, cost_bps=cost_bps),
+        portfolio=pstats,
         coverage=float(scores.notna().mean(axis=1).mean()),
         autocorr=score_autocorr(scores),
-        ls_returns=long_short_returns(scores, fwd, q),
+        ls_returns=ls,
+        capacity_usd=cap.capacity_usd,
+        cost_sensitivity={str(k): v for k, v in cost_sens.items()},
     )

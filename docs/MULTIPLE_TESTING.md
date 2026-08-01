@@ -69,9 +69,18 @@ For a family study (`research.pipeline.run_family_study`):
 5. the decision function requires FDR survival **and** `DSR ≥ threshold` **and**
    novelty — a high Sharpe alone never promotes.
 
+### Combinatorial Purged CV — `stats.cpcv`
+CPCV (López de Prado, 2018) partitions the timeline into groups and tests every
+combination of `k` test groups, purging and embargoing overlapping training
+observations. Because each group appears in many combinations, it produces many
+backtest paths — a more robust overfit basis than single-path CSCV.
+`pbo_cpcv` is reported alongside `pbo_cscv` in every candidate report as a second
+PBO estimate; `cpcv_splits` also serves as a drop-in alternative to
+`purged_embargoed_kfold`.
+
 ## Extension points
 
-Implemented in later phases: **White's Reality Check** and **Hansen's SPA**
-(`stats.reality_check`), and **purged/embargoed cross-validation**
-(`stats.cv.purged_embargoed_kfold`). Still design-only: combinatorial *purged*
-cross-validation (CPCV) as an alternative to CSCV PBO. See [ROADMAP.md](ROADMAP.md).
+All previously-reserved methods are now implemented: **White's Reality Check**,
+**Hansen's SPA** (`stats.reality_check`), **purged/embargoed CV**
+(`stats.cv`), and **combinatorial purged CV** (`stats.cpcv`). See
+[ROADMAP.md](ROADMAP.md) for what remains.

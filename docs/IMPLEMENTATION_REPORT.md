@@ -145,7 +145,21 @@ after Phase B).
   pipeline as any factor. The core, tests, and demo remain fully offline (the
   provider is covered by `tests/test_ai_provider.py` with a fake client).
 
-**92 tests total**, still no network / credentials / Geld access.
+## Phase C+ additions (implemented)
+
+* **Combinatorial Purged CV** (`emberforge.stats.cpcv`) — a second PBO estimate
+  over combinatorial backtest paths, reported next to CSCV PBO in every candidate
+  report (`pbo_cpcv`).
+* **Cost & capacity model** (`emberforge.analytics.costs`) — commission,
+  half-spread, √-participation market impact, and short borrow, with a bisection
+  capacity estimate and a cost-sensitivity curve; `evaluate_factor` derives ADV
+  from the dataset and reports `capacity_usd` + `cost_sensitivity`. See
+  `docs/COST_AND_CAPACITY.md`.
+* **AI generation wired into the research agent** — `ResearchAgent(ai_provider=…)`
+  asks a mock or Anthropic provider for candidates, validated like any other and
+  tagged `generator="ai"`; CLI `research-agent run --ai mock|anthropic`.
+
+**109 tests total**, still no network / credentials / Geld access.
 
 ## 11. Known limitations & next steps
 

@@ -26,6 +26,7 @@ from ..stats import (
     hansens_spa,
     holm,
     ic_pvalue,
+    pbo_cpcv,
     pbo_cscv,
     whites_reality_check,
 )
@@ -113,6 +114,10 @@ def run_family_study(
     ls_frame = pd.DataFrame({r.spec.factor_id: r.evaluation.ls_returns for r in results}).dropna()
     have_family = ls_frame.shape[1] >= 2 and len(ls_frame) >= 8
     pbo = pbo_cscv(ls_frame.values, n_splits=8).pbo if have_family else float("nan")
+    pbo_cpcv_val = (
+        pbo_cpcv(ls_frame.values, n_groups=6, n_test_groups=2).pbo
+        if ls_frame.shape[1] >= 2 and len(ls_frame) >= 12 else float("nan")
+    )
     # family-wide data-snooping tests over the best-of-N (White RC, Hansen SPA)
     if ls_frame.shape[1] >= 2 and len(ls_frame) >= 20:
         white_rc_p = whites_reality_check(ls_frame.values, n_boot=500, seed=seed).p_value
@@ -148,6 +153,7 @@ def run_family_study(
             "p_holm": hl[i].p_adjusted,
             "dsr": dsr.dsr,
             "pbo": pbo,
+            "pbo_cpcv": pbo_cpcv_val,   # family-level (combinatorial paths)
             "white_rc_p": white_rc_p,   # family-level (same across the family)
             "spa_p": spa_p,             # family-level
             "sharpe_ci_lo": ci.lower,
