@@ -66,3 +66,17 @@ def test_evaluation_exposes_capacity_and_cost_sensitivity(data):
     metrics = ev.to_metrics()
     assert "capacity_usd" in metrics
     assert "cost_sensitivity" in metrics and metrics["cost_sensitivity"]
+
+
+def test_portfolio_stats_uses_cost_model_for_net_sharpe(data):
+    from emberforge.analytics import portfolio_stats
+    from emberforge.analytics.costs import CostModel
+    from emberforge.compute import compute_factor
+
+    scores = compute_factor(make_factor("m", "ts_returns(close,20)"), data)
+    fwd = data.forward_returns(1)
+    cheap = portfolio_stats(scores, fwd, cost_model=CostModel(commission_bps=0.5, half_spread_bps=0.5))
+    pricey = portfolio_stats(scores, fwd, cost_model=CostModel(commission_bps=20, half_spread_bps=20))
+    # gross sharpe identical; higher modeled cost gives a lower net sharpe
+    assert cheap.sharpe == pricey.sharpe
+    assert cheap.sharpe_after_cost > pricey.sharpe_after_cost

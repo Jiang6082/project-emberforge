@@ -86,11 +86,24 @@ def portfolio_stats(
     fwd_returns: pd.DataFrame,
     q: int = 5,
     cost_bps: float = 5.0,
+    cost_model=None,
 ) -> PortfolioStats:
+    """Diagnostic long-short statistics.
+
+    ``sharpe_after_cost`` uses ``cost_model`` (a :class:`~emberforge.analytics.costs.CostModel`)
+    when provided — the same object family that drives the capacity and
+    cost-sensitivity numbers — falling back to a flat ``cost_bps × turnover``
+    otherwise. This keeps the headline net Sharpe consistent with the rest of the
+    cost reporting.
+    """
     ls = long_short_returns(scores, fwd_returns, q)
     qret = quantile_returns(scores, fwd_returns, q)
     tvr = turnover(scores, q)
-    cost_per_period = (cost_bps / 1e4) * (tvr if not np.isnan(tvr) else 0.0)
+    tvr_eff = tvr if not np.isnan(tvr) else 0.0
+    if cost_model is not None:
+        cost_per_period = cost_model.per_period_cost(tvr_eff, participation=0.0)
+    else:
+        cost_per_period = (cost_bps / 1e4) * tvr_eff
     ls_net = ls - cost_per_period
     mono = float(pd.Series(range(q)).corr(qret.reset_index(drop=True), method="spearman"))
     return PortfolioStats(

@@ -87,7 +87,9 @@ def evaluate_factor(
         eligibility = universe.eligibility(data.index, data.symbols)
     scores = compute_factor(spec, data, preprocess, eligibility=eligibility)
     fwd = data.forward_returns(horizon)
-    pstats = portfolio_stats(scores, fwd, q=q, cost_bps=cost_bps)
+    # one CostModel drives the headline net Sharpe, capacity, and cost sensitivity.
+    cost_model = CostModel()
+    pstats = portfolio_stats(scores, fwd, q=q, cost_bps=cost_bps, cost_model=cost_model)
     ls = long_short_returns(scores, fwd, q)
 
     # capacity & cost sensitivity from a per-name liquidity/volatility profile
@@ -104,7 +106,7 @@ def evaluate_factor(
             adv_per_name, vol_per_name = float("nan"), None
     except Exception:
         adv_per_name, vol_per_name = float("nan"), None
-    cap = estimate_capacity(gross, adv_per_name, tvr, daily_vol=vol_per_name)
+    cap = estimate_capacity(gross, adv_per_name, tvr, model=cost_model, daily_vol=vol_per_name)
     cost_sens = cost_sensitivity(pstats.sharpe, gross, pstats.ann_vol, tvr)
 
     return FactorEvaluation(
