@@ -2,6 +2,11 @@ import numpy as np
 
 from emberforge.stats import hansens_spa, whites_reality_check
 
+import pytest
+
+pytestmark = pytest.mark.slow
+
+
 
 def test_reality_check_high_p_for_pure_noise():
     rng = np.random.default_rng(0)

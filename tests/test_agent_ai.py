@@ -6,6 +6,11 @@ from emberforge.generate import MockProvider
 from emberforge.registry import ExperimentRegistry
 from emberforge.registry.holdout import ResearchBudget
 
+import pytest
+
+pytestmark = pytest.mark.slow
+
+
 
 def _agent(tmp_path, provider, seed=7):
     data = make_synthetic(n_symbols=12, n_days=300, seed=seed)

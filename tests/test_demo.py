@@ -2,6 +2,11 @@
 
 from emberforge.demo import run_demo
 
+import pytest
+
+pytestmark = pytest.mark.slow
+
+
 
 def test_demo_runs_end_to_end(tmp_path):
     summary = run_demo(out_dir=tmp_path / "demo")

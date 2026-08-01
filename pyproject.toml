@@ -37,3 +37,6 @@ emberforge = ["py.typed"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
+markers = [
+    "slow: end-to-end / bootstrap-heavy tests (run the fast core with -m 'not slow')",
+]
