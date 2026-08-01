@@ -49,14 +49,25 @@ def compute_factor(
     spec_or_node: FactorSpec | Node,
     data: MarketData,
     config: PreprocessConfig = PreprocessConfig(),
+    eligibility: pd.DataFrame | None = None,
 ) -> pd.DataFrame:
-    """Full causal computation: validate -> evaluate -> preprocess."""
+    """Full causal computation: validate -> evaluate -> (universe mask) -> preprocess.
+
+    ``eligibility`` is an optional point-in-time-safe boolean mask (time x symbol),
+    typically produced by ``Universe.eligibility``. Ineligible cells are removed
+    *before* cross-sectional normalization, so ranks/z-scores are computed only
+    over eligible names.
+    """
     node = _to_node(spec_or_node)
     causality.validate(node)
     scores = evaluate(node, data)
     if np.isscalar(scores):
         raise ValueError("factor reduced to a scalar; needs a field somewhere")
     scores = scores.reindex(index=data.index, columns=data.symbols).astype(float)
+
+    if eligibility is not None:
+        elig = eligibility.reindex(index=data.index, columns=data.symbols).fillna(False)
+        scores = scores.where(elig.astype(bool))
 
     # coverage mask: drop rows without enough cross-sectional support.
     coverage = scores.notna().mean(axis=1)

@@ -46,7 +46,10 @@ tested and replaced in isolation.
 | `stats/` | Benjamini–Hochberg, Holm, Deflated Sharpe, PBO (CSCV), circular block bootstrap |
 | `dedup/` | Syntactic (hash), empirical (correlation), semantic (family) dedup + novelty report |
 | `registry/` | SQLite experiment registry, lineage, git provenance, holdout governance & budgets |
+| `universe/` | Point-in-time universe membership (static/PIT/survivorship/research-only), PIT-safe eligibility |
+| `robustness/` | Sub-period stability, volatility-regime IC, parameter sensitivity |
 | `generate/` | Template, mutation, and AI (mock-by-default) generators |
+| `agent/` | Constrained autonomous research agent (Phase B) |
 | `research/` | Decision framework + end-to-end family pipeline |
 | `report/` | Per-candidate and aggregate family reports (Markdown + JSON) |
 | `export/` | Offline candidate-bundle writer + checksum verifier |

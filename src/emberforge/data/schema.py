@@ -87,3 +87,22 @@ class MarketData:
         never available to factor expressions (which only see fields at/<= t)."""
         close = self.panels["close"]
         return close.shift(-horizon) / close - 1.0
+
+    def subset(self, mask: pd.Series) -> "MarketData":
+        """Return a new MarketData restricted to timestamps where ``mask`` is True.
+
+        Used to evaluate on a development/validation window without ever exposing
+        the locked test — the agent and robustness tools slice with this.
+        """
+        idx = self.index[mask.reindex(self.index, fill_value=False).values]
+        panels = {name: df.loc[idx] for name, df in self.panels.items()}
+        return MarketData(panels, self.metadata.model_copy(update={"fingerprint": ""}))
+
+    def subset_by_date(self, start=None, end=None) -> "MarketData":
+        idx = self.index
+        mask = pd.Series(True, index=idx)
+        if start is not None:
+            mask &= idx >= pd.Timestamp(start, tz=idx.tz)
+        if end is not None:
+            mask &= idx <= pd.Timestamp(end, tz=idx.tz)
+        return self.subset(mask)

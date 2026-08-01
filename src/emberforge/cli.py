@@ -104,6 +104,35 @@ def cmd_experiment_show(args) -> int:
     return 0
 
 
+def cmd_factor_robustness(args) -> int:
+    from .dsl import make_factor
+    from .robustness import robustness_report
+
+    data = _load_data(args)
+    spec = make_factor("cli_factor", args.expression)
+    tmpl = args.template if getattr(args, "template", None) else None
+    params = [int(p) for p in args.params.split(",")] if getattr(args, "params", None) else None
+    rep = robustness_report(spec, data, horizon=args.horizon,
+                            sensitivity_template=tmpl, sensitivity_params=params)
+    print(json.dumps(rep.summary(), indent=2, default=str))
+    return 0
+
+
+def cmd_research_agent_run(args) -> int:
+    from .agent import ResearchAgent
+    from .data import make_synthetic
+    from .registry import ExperimentRegistry
+    from .registry.holdout import ResearchBudget
+
+    data = make_synthetic(seed=args.seed, n_days=args.n_days)
+    reg = ExperimentRegistry(args.registry)
+    agent = ResearchAgent(data, reg, budget=ResearchBudget(max_candidates=args.budget), seed=args.seed)
+    families = args.families.split(",") if args.families else None
+    report = agent.run(families=families)
+    print(json.dumps(report.summary(), indent=2, default=str))
+    return 0
+
+
 def cmd_demo(args) -> int:
     from .demo import run_demo
 
@@ -130,6 +159,10 @@ def build_parser() -> argparse.ArgumentParser:
     add_data_opts(fe); fe.set_defaults(func=cmd_factor_evaluate)
     fc = f.add_parser("compare"); fc.add_argument("a"); fc.add_argument("b"); add_data_opts(fc)
     fc.set_defaults(func=cmd_factor_compare)
+    fr = f.add_parser("robustness"); fr.add_argument("expression"); fr.add_argument("--horizon", type=int, default=1)
+    fr.add_argument("--template", default=None, help="sensitivity template with {w}")
+    fr.add_argument("--params", default=None, help="comma-separated integer params")
+    add_data_opts(fr); fr.set_defaults(func=cmd_factor_robustness)
 
     g = sub.add_parser("generate", help="generation commands").add_subparsers(dest="sub", required=True)
     gt = g.add_parser("templates"); gt.set_defaults(func=cmd_generate_templates)
@@ -140,6 +173,15 @@ def build_parser() -> argparse.ArgumentParser:
     el.set_defaults(func=cmd_experiment_list)
     es = e.add_parser("show"); es.add_argument("experiment_id")
     es.add_argument("--registry", default="runtime/demo/registry.sqlite3"); es.set_defaults(func=cmd_experiment_show)
+
+    ra = sub.add_parser("research-agent", help="constrained research agent").add_subparsers(dest="sub", required=True)
+    rar = ra.add_parser("run")
+    rar.add_argument("--registry", default="runtime/agent/registry.sqlite3")
+    rar.add_argument("--families", default=None, help="comma-separated families to consider")
+    rar.add_argument("--budget", type=int, default=40)
+    rar.add_argument("--seed", type=int, default=7)
+    rar.add_argument("--n-days", dest="n_days", type=int, default=400)
+    rar.set_defaults(func=cmd_research_agent_run)
 
     dm = sub.add_parser("demo", help="run the end-to-end demonstration")
     dm.add_argument("--out", default="runtime/demo"); dm.set_defaults(func=cmd_demo)

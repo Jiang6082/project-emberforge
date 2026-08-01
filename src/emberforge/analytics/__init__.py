@@ -66,9 +66,16 @@ def evaluate_factor(
     q: int = 5,
     cost_bps: float = 5.0,
     preprocess: PreprocessConfig = PreprocessConfig(),
+    universe=None,
 ) -> FactorEvaluation:
-    """Compute and evaluate a factor end-to-end (analytics only, no stats gates)."""
-    scores = compute_factor(spec, data, preprocess)
+    """Compute and evaluate a factor end-to-end (analytics only, no stats gates).
+
+    If ``universe`` is given, its point-in-time-safe eligibility mask is applied.
+    """
+    eligibility = None
+    if universe is not None:
+        eligibility = universe.eligibility(data.index, data.symbols)
+    scores = compute_factor(spec, data, preprocess, eligibility=eligibility)
     fwd = data.forward_returns(horizon)
     return FactorEvaluation(
         factor_id=spec.factor_id,

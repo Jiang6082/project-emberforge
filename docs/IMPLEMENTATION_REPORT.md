@@ -1,4 +1,4 @@
-# Implementation Report — Project Emberforge (MVP / Phase A)
+# Implementation Report — Project Emberforge (Phase A MVP + Phase B)
 
 ## 1. Architecture summary
 
@@ -41,7 +41,8 @@ python -m emberforge.demo    # end-to-end; writes runtime/demo/
 
 ## 4. Test results
 
-**65 passed** (no network, no credentials, no Geld access). Coverage spans:
+**83 passed** (no network, no credentials, no Geld access) — 65 Phase A + 18
+Phase B. Coverage spans:
 expression parsing, canonicalization/hashing, causal lagging, invalid
 future-looking expressions, rolling windows, missing data, IC calculations,
 quantile construction, costs, deduplication, FDR adjustments, Deflated Sharpe,
@@ -75,6 +76,10 @@ checksums.txt`. `verify_bundle` returns `checksums_ok = True`; the manifest's
 `approval_state` is `human_approved`. `factor.json` carries only the declarative
 expression + hash (no executable code).
 
+The constrained agent produces its own report, e.g.
+`{family: momentum, n_candidates_evaluated: 4, survivors: [momentum_60],
+n_duplicates: 2, holdout_accesses: 0, stopped_reason: search space exhausted}`.
+
 ## 7. How trial counts & holdout access are enforced
 
 * Every experiment — including failures and duplicates — is written to the SQLite
@@ -106,14 +111,35 @@ one-way, offline, human-approved, checksummed bundle. Geld is never modified,
 never queried live, and cannot be traded by Emberforge. See
 [PROJECT_GELD_INTERFACE_NOTES.md](PROJECT_GELD_INTERFACE_NOTES.md).
 
-## 10. Known limitations & next steps
+## 10. Phase B additions (implemented)
+
+* **Point-in-time universe** (`emberforge.universe`) — static / point-in-time /
+  survivorship-stressed / research-only variants. Membership is lagged one bar so
+  a change observed at `t` can only affect `t+1`; each universe is fingerprinted
+  and recorded per experiment. Wired through `compute_factor`, `evaluate_factor`,
+  and `run_family_study`.
+* **Robustness & regime analysis** (`emberforge.robustness`) — sub-period
+  stability, causal volatility-regime IC, and parameter-sensitivity surfaces in a
+  `RobustnessReport`. CLI: `emberforge factor robustness`.
+* **Constrained research agent** (`emberforge.agent.ResearchAgent`) — picks the
+  least-explored family, screens on the development window only, mutates
+  near-misses under budget, records everything, and promotes only via the
+  multi-gate decision function. Asserts `holdout_accesses == 0`. CLI:
+  `emberforge research-agent run`.
+* **Purged & embargoed cross-validation** (`emberforge.stats.cv`).
+
+All guardrails are enforced in code and covered by `tests/test_agent.py`,
+`tests/test_universe.py`, `tests/test_robustness.py` (18 new tests, **83 total**).
+
+## 11. Known limitations & next steps
 
 * Synthetic/small data; the IC t-statistic assumes iid periods (stated in
   reports). Diagnostic portfolios ignore real fills, borrow, and capacity.
-* PBO/DSR are documented approximations; White/SPA and purged CV are Phase C.
-* Point-in-time universe, robustness/regime analysis, and the autonomous research
-  agent are designed and scaffolded (budgets, generators, decision function all
-  exist) but composed into a loop only in Phase B. See [ROADMAP.md](ROADMAP.md).
+* PBO/DSR are documented approximations; White's Reality Check and Hansen's SPA
+  remain design-only extension points (Phase C).
+* A networked LLM provider is intentionally omitted from the offline core; the
+  `LLMProvider` protocol and a deterministic mock are in place. See
+  [ROADMAP.md](ROADMAP.md).
 
 ## Acceptance criteria — status
 

@@ -60,15 +60,19 @@ def run_family_study(
     preprocess: PreprocessConfig = PreprocessConfig(),
     criteria: PromotionCriteria = PromotionCriteria(),
     seed: int = 0,
+    universe=None,
 ) -> FamilyStudy:
     from ..report import candidate_report_dict  # local import avoids report<->research cycle
+
+    eligibility = universe.eligibility(data.index, data.symbols) if universe is not None else None
+    universe_fp = universe.fingerprint if universe is not None else data.metadata.fingerprint
 
     # 1) compute + evaluate + record every experiment (including future failures)
     results: list[CandidateResult] = []
     for spec in specs:
         try:
-            scores = compute_factor(spec, data, preprocess)
-            evaluation = evaluate_factor(spec, data, horizon=horizon, preprocess=preprocess)
+            scores = compute_factor(spec, data, preprocess, eligibility=eligibility)
+            evaluation = evaluate_factor(spec, data, horizon=horizon, preprocess=preprocess, universe=universe)
             status = "evaluated"
             failure = None
         except Exception as exc:  # invalid / degenerate factor still gets recorded
@@ -86,7 +90,7 @@ def run_family_study(
             parent_id=(spec.parent_ids[0] if spec.parent_ids else None),
             failure_reason=failure, seed=seed,
             dataset_fingerprint=data.metadata.fingerprint,
-            universe_fingerprint=data.metadata.fingerprint,
+            universe_fingerprint=universe_fp,
             metrics=evaluation.to_metrics(),
         )
         exp_id = registry.record(rec)

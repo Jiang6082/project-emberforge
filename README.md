@@ -103,11 +103,13 @@ cs_rank(divide(volume, ts_mean(volume, 20)))   # relative volume spike
 ```
 
 ```bash
-emberforge factor validate  "ts_returns(close, 20)"
-emberforge factor evaluate  "ts_returns(close, 20)" --horizon 1
-emberforge factor compare   "ts_returns(close,20)" "ts_delta(close,20)"
+emberforge factor validate    "ts_returns(close, 20)"
+emberforge factor evaluate     "ts_returns(close, 20)" --horizon 1
+emberforge factor compare      "ts_returns(close,20)" "ts_delta(close,20)"
+emberforge factor robustness   "ts_returns(close,20)" --template "ts_returns(close,{w})" --params 10,20,30,40
 emberforge generate templates
-emberforge experiment list  --registry runtime/demo/registry.sqlite3 --family momentum_family
+emberforge experiment list     --registry runtime/demo/registry.sqlite3 --family momentum_family
+emberforge research-agent run  --families momentum,volatility --budget 40
 emberforge demo
 ```
 
@@ -154,11 +156,12 @@ This is enforced by tests, not just convention. See
 **Phase A (MVP) complete** — declarative DSL, causal compute, analytics, registry
 with lineage and holdout governance, three-layer dedup, the full multiple-testing
 suite, reporting, offline bundle export, and deterministic + mock-AI generation.
-65 tests passing.
 
-**Phase B (in progress)** — point-in-time universe support, robustness/regime
-analysis, and the constrained autonomous research agent. See
-[ROADMAP.md](docs/ROADMAP.md).
+**Phase B complete** — point-in-time universe support, robustness/regime analysis,
+purged/embargoed cross-validation, and the constrained autonomous research agent
+(picks the least-explored family, screens on the development window only, never
+touches the locked test, and promotes only through the multi-gate decision
+function). **83 tests passing.** See [ROADMAP.md](docs/ROADMAP.md).
 
 ## Disclaimer
 

@@ -11,18 +11,27 @@ suite · docs.
 Acceptance criteria are met — see
 [IMPLEMENTATION_REPORT.md](IMPLEMENTATION_REPORT.md).
 
-## Phase B — advanced research integrity (next)
+## Phase B — advanced research integrity (implemented)
 
-* **Point-in-time universe** as a first-class input: historical membership,
-  survivorship-stressed and research-only variants, fingerprinted per experiment.
-* **Robustness & regime analysis**: sub-period stability, volatility-regime
-  splits, parameter-sensitivity surfaces, cross-universe and cross-feed stability.
-* **Constrained research agent**: compose the existing generators, registry,
-  budgets, decision function, and reporting into an autonomous loop with hard
-  compute/candidate/holdout budgets and the prohibitions in
-  [AI_RESEARCH_AGENT.md](AI_RESEARCH_AGENT.md).
-* **Real LLM provider** behind the existing `LLMProvider` protocol.
-* **Purged & embargoed cross-validation** for the evaluation split.
+* ✅ **Point-in-time universe** (`emberforge.universe`) as a first-class input:
+  static, point-in-time, survivorship-stressed, and research-only variants;
+  membership is lagged one bar so a change at `t` cannot affect `t`; fingerprinted
+  and recorded per experiment.
+* ✅ **Robustness & regime analysis** (`emberforge.robustness`): sub-period
+  stability, causal volatility-regime splits, and parameter-sensitivity surfaces,
+  combined in a `RobustnessReport`.
+* ✅ **Constrained research agent** (`emberforge.agent`): picks the least-explored
+  family, screens on the development window only, mutates near-misses under
+  budget, and promotes only through the multi-gate decision function. Hard
+  candidate/holdout/mutation budgets; asserts zero locked-test access.
+* ✅ **Purged & embargoed cross-validation** (`emberforge.stats.cv`).
+
+Still open in this track:
+
+* **Real LLM provider** behind the existing `LLMProvider` protocol (the interface
+  and a mock exist; a networked implementation is intentionally omitted from the
+  offline core).
+* **Cross-feed stability** (needs a second data feed).
 
 ## Phase C — statistical depth
 
