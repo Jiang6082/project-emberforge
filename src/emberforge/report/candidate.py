@@ -113,6 +113,8 @@ def candidate_report_md(report: dict) -> str:
         f"| White Reality Check p (family) | {_fmt(s.get('white_rc_p'), 3)} |",
         f"| Hansen SPA p (family) | {_fmt(s.get('spa_p'), 3)} |",
         f"| Sharpe 95% block-bootstrap CI | [{_fmt(s.get('sharpe_ci_lo'),2)}, {_fmt(s.get('sharpe_ci_hi'),2)}] |",
+        f"| CPCV OOS Sharpe (median / 5th pct) | {_fmt(s.get('cpcv_oos_sharpe_median'),2)} / {_fmt(s.get('cpcv_oos_sharpe_p05'),2)} |",
+        f"| CPCV paths with positive Sharpe | {_fmt(s.get('cpcv_oos_frac_positive'),2)} |",
         "",
         "## Novelty",
     ]

@@ -68,6 +68,61 @@ class CPCVResult:
     note: str = "CPCV overfit estimate"
 
 
+@dataclass(frozen=True)
+class CPCVPathDistribution:
+    """Out-of-sample performance of a single strategy across combinatorial paths."""
+
+    oos_sharpes: tuple[float, ...]
+    median: float
+    p05: float
+    p95: float
+    fraction_positive: float
+    n_paths: int
+
+
+def _sharpe_1d(x: np.ndarray, periods: int = 252) -> float:
+    x = x[~np.isnan(x)]
+    if len(x) < 2 or x.std(ddof=1) == 0:
+        return float("nan")
+    return float(x.mean() / x.std(ddof=1) * np.sqrt(periods))
+
+
+def cpcv_path_distribution(
+    returns, n_groups: int = 6, n_test_groups: int = 2, periods: int = 252
+) -> CPCVPathDistribution:
+    """Distribution of a strategy's OOS Sharpe across CPCV combinations.
+
+    Unlike :func:`pbo_cpcv` (which needs many strategies for model selection),
+    this takes a *single* return series and reports how its out-of-sample Sharpe
+    varies across the combinatorial test blocks — a direct read on path
+    robustness. A wide spread or a low 5th-percentile Sharpe flags a factor whose
+    apparent edge depends on which slice of history you look at.
+    """
+    r = np.asarray(returns, dtype=float)
+    r = r[~np.isnan(r)]
+    T = len(r)
+    if not (1 <= n_test_groups < n_groups <= T):
+        return CPCVPathDistribution((), float("nan"), float("nan"), float("nan"), float("nan"), 0)
+    groups = _groups(T, n_groups)
+    sharpes = []
+    for combo in combinations(range(len(groups)), n_test_groups):
+        test = np.concatenate([groups[g] for g in combo])
+        s = _sharpe_1d(r[test], periods)
+        if not np.isnan(s):
+            sharpes.append(s)
+    if not sharpes:
+        return CPCVPathDistribution((), float("nan"), float("nan"), float("nan"), float("nan"), 0)
+    arr = np.array(sharpes)
+    return CPCVPathDistribution(
+        oos_sharpes=tuple(float(x) for x in arr),
+        median=float(np.median(arr)),
+        p05=float(np.percentile(arr, 5)),
+        p95=float(np.percentile(arr, 95)),
+        fraction_positive=float((arr > 0).mean()),
+        n_paths=len(arr),
+    )
+
+
 def _sharpe(x: np.ndarray) -> np.ndarray:
     mu = x.mean(axis=0)
     sd = x.std(axis=0, ddof=1)
@@ -110,4 +165,7 @@ def pbo_cpcv(
     return CPCVResult(pbo, used, n_backtest_paths(n_groups, n_test_groups), N)
 
 
-__all__ = ["cpcv_splits", "pbo_cpcv", "n_backtest_paths", "CPCVResult"]
+__all__ = [
+    "cpcv_splits", "pbo_cpcv", "n_backtest_paths", "CPCVResult",
+    "cpcv_path_distribution", "CPCVPathDistribution",
+]

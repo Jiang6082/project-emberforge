@@ -36,6 +36,24 @@ def test_capacity_scales_with_liquidity():
     assert large > small  # more liquid names support more capital
 
 
+def test_per_name_adv_least_liquid_dominates():
+    # a portfolio that must trade one thin name caps out below its median ADV
+    uniform = estimate_capacity(0.002, adv_usd=[5e6] * 10, turnover=0.2).capacity_usd
+    with_thin = estimate_capacity(0.002, adv_usd=[5e6] * 9 + [1e5], turnover=0.2).capacity_usd
+    assert with_thin < uniform
+
+
+def test_higher_volatility_lowers_capacity():
+    calm = estimate_capacity(0.002, adv_usd=[5e6] * 10, turnover=0.2, daily_vol=0.01).capacity_usd
+    wild = estimate_capacity(0.002, adv_usd=[5e6] * 10, turnover=0.2, daily_vol=0.05).capacity_usd
+    assert wild < calm  # more volatile names have higher impact
+
+
+def test_scalar_adv_still_supported():
+    cap = estimate_capacity(0.002, adv_usd=5e6, turnover=0.2, n_positions=10)
+    assert cap.capacity_usd > 0
+
+
 def test_cost_sensitivity_monotone_decreasing():
     sens = cost_sensitivity(gross_sharpe=2.0, gross_alpha_per_period=0.001,
                             ann_vol=0.1, turnover=0.3, cost_bps_levels=(0.0, 5.0, 20.0))

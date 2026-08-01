@@ -54,11 +54,25 @@ Still open in this track:
 * ✅ **AI generation wired into the research agent** — the agent optionally asks
   an `LLMProvider` (mock or Anthropic) for candidates, validated like any other.
 
+## Polish (implemented)
+
+* ✅ **Per-name, volatility-calibrated capacity** — `estimate_capacity` accepts
+  per-name ADV and daily-vol arrays (Almgren-style √-impact); the least-liquid /
+  most-volatile names dominate, and `evaluate_factor` derives both from the
+  dataset.
+* ✅ **CPCV path distributions** — `cpcv_path_distribution` reports a single
+  factor's out-of-sample Sharpe across combinatorial paths (median, 5th pct,
+  fraction positive), shown per candidate.
+* ✅ **Repo hygiene** — `LICENSE` (MIT) and a `py.typed` marker so the typed
+  package ships its types. A GitHub Actions CI workflow (`pytest` on 3.11/3.12 +
+  boundary check) is prepared at `.github/workflows/ci.yml`; it needs a token with
+  the `workflow` scope to push (`gh auth refresh -s workflow`, then
+  `git add -f .github/workflows/ci.yml`).
+
 ## Remaining / future
 
-* Richer capacity model: per-name ADV time series and venue-calibrated impact.
-* Alternative CPCV path aggregation (per-path performance distributions, not just
-  the PBO summary).
+* Per-name ADV as a rolling time series (currently a per-symbol median snapshot)
+  and venue-calibrated impact coefficients.
 
 ## Phase D — interoperability
 

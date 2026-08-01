@@ -14,12 +14,13 @@ Per-period cost of running the diagnostic portfolio at assets-under-management
 |---|---|---|
 | Commission | `commission_bps × turnover` | turnover |
 | Half-spread | `half_spread_bps × turnover` | turnover |
-| Market impact | `impact_coef × √participation × turnover` | √AUM (concave) |
+| Market impact | `impact_coef × σ × √participation × turnover` | √AUM (concave) |
 | Borrow | `borrow_bps_annual / 252` (short leg) | time |
 
 `participation` is the traded notional per name divided by that name's average
-daily dollar volume (ADV). Because impact grows with `√participation` and
-participation grows with AUM, cost is monotone increasing in AUM.
+daily dollar volume (ADV), and `σ` is the name's daily return volatility — an
+Almgren-style square-root impact law. Because impact grows with `√participation`
+and participation grows with AUM, cost is monotone increasing in AUM.
 
 ```python
 from emberforge.analytics.costs import CostModel
@@ -33,10 +34,17 @@ bisection — the capital at which market impact erodes the gross edge to zero.
 It returns `0` when there is no positive gross alpha (or fixed costs already
 exceed it) and scales up with ADV (more liquid names support more capital).
 
-`evaluate_factor` computes ADV from the dataset (`median(volume × close)` over
-eligible cells) and reports `capacity_usd` in every candidate report, alongside a
-`cost_sensitivity` curve — annualized Sharpe at several flat bps levels — so a
-reviewer can see how fragile the edge is to costs at a glance.
+`adv_usd` and `daily_vol` accept **per-name arrays**, not just scalars. With
+arrays, each traded name contributes its own impact and the least-liquid /
+most-volatile names dominate — a portfolio that must trade a thin name caps out
+below what its *median* ADV would suggest (verified by
+`tests/test_costs.py::test_per_name_adv_least_liquid_dominates`).
+
+`evaluate_factor` builds the per-name ADV (`median(volume × close)` per symbol
+over eligible cells) and per-name daily volatility from the dataset, then reports
+`capacity_usd` in every candidate report alongside a `cost_sensitivity` curve —
+annualized Sharpe at several flat bps levels — so a reviewer can see how fragile
+the edge is to costs at a glance.
 
 ## Where it shows up
 

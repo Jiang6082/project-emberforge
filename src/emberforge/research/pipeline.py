@@ -22,6 +22,7 @@ from ..registry import ExperimentRecord, ExperimentRegistry
 from ..stats import (
     benjamini_hochberg,
     circular_block_bootstrap,
+    cpcv_path_distribution,
     deflated_sharpe,
     hansens_spa,
     holm,
@@ -139,6 +140,7 @@ def run_family_study(
     for i, r in enumerate(results):
         dsr = deflated_sharpe(r.evaluation.ls_returns, n_trials=n_trials, sr_variance=sr_var)
         ci = circular_block_bootstrap(r.evaluation.ls_returns, statistic="sharpe", seed=seed)
+        cpath = cpcv_path_distribution(r.evaluation.ls_returns, n_groups=6, n_test_groups=2)
         # keep-first dedup: only compare against *earlier* candidates, so the
         # first occurrence survives and later copies are flagged as duplicates.
         prior = results[:i]
@@ -158,6 +160,9 @@ def run_family_study(
             "spa_p": spa_p,             # family-level
             "sharpe_ci_lo": ci.lower,
             "sharpe_ci_hi": ci.upper,
+            "cpcv_oos_sharpe_median": cpath.median,   # per-candidate path robustness
+            "cpcv_oos_sharpe_p05": cpath.p05,
+            "cpcv_oos_frac_positive": cpath.fraction_positive,
         }
         nearest = nov.nearest.correlation if nov.nearest else None
         decision = decide(

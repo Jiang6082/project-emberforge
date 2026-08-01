@@ -1,5 +1,7 @@
 # Project Emberforge
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 **An AI-assisted platform for discovering quantitative trading factors — built to
 stop you from fooling yourself.**
 
@@ -174,7 +176,7 @@ estimate), a transaction-cost & capacity model (spread + √-participation marke
 impact + borrow, with a capacity estimate and cost-sensitivity curve), and
 AI-assisted generation wired into the research agent (mock offline, or Anthropic).
 
-**109 tests passing.** See [ROADMAP.md](docs/ROADMAP.md).
+**114 tests passing.** See [ROADMAP.md](docs/ROADMAP.md).
 
 ## Disclaimer
 

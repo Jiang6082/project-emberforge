@@ -90,19 +90,22 @@ def evaluate_factor(
     pstats = portfolio_stats(scores, fwd, q=q, cost_bps=cost_bps)
     ls = long_short_returns(scores, fwd, q)
 
-    # capacity & cost sensitivity from a liquidity proxy (average daily $ volume)
+    # capacity & cost sensitivity from a per-name liquidity/volatility profile
     gross = float(ls.mean()) if len(ls) else float("nan")
+    tvr = pstats.turnover if pstats.turnover == pstats.turnover else 0.5
     try:
-        dollar_vol = (data.field("volume") * data.field("close"))
+        dollar_vol = data.field("volume") * data.field("close")
         if eligibility is not None:
             dollar_vol = dollar_vol.where(eligibility.reindex_like(dollar_vol).fillna(False))
-        adv_usd = float(np.nanmedian(dollar_vol.values))
+        adv_per_name = dollar_vol.median(axis=0).dropna().values          # per-symbol ADV ($)
+        vol_per_name = data.field("close").pct_change().std(axis=0)
+        vol_per_name = vol_per_name.reindex(dollar_vol.median(axis=0).dropna().index).values
+        if adv_per_name.size == 0:
+            adv_per_name, vol_per_name = float("nan"), None
     except Exception:
-        adv_usd = float("nan")
-    n_positions = max(2, 2 * (len(data.symbols) // q))
-    cap = estimate_capacity(gross, adv_usd, pstats.turnover if pstats.turnover == pstats.turnover else 0.5, n_positions)
-    cost_sens = cost_sensitivity(pstats.sharpe, gross, pstats.ann_vol,
-                                 pstats.turnover if pstats.turnover == pstats.turnover else 0.5)
+        adv_per_name, vol_per_name = float("nan"), None
+    cap = estimate_capacity(gross, adv_per_name, tvr, daily_vol=vol_per_name)
+    cost_sens = cost_sensitivity(pstats.sharpe, gross, pstats.ann_vol, tvr)
 
     return FactorEvaluation(
         factor_id=spec.factor_id,

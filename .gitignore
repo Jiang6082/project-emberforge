@@ -6,3 +6,6 @@ runtime/
 .pytest_cache/
 build/
 dist/
+
+# CI workflow kept local until a token with the workflow scope pushes it
+.github/

@@ -76,7 +76,12 @@ observations. Because each group appears in many combinations, it produces many
 backtest paths — a more robust overfit basis than single-path CSCV.
 `pbo_cpcv` is reported alongside `pbo_cscv` in every candidate report as a second
 PBO estimate; `cpcv_splits` also serves as a drop-in alternative to
-`purged_embargoed_kfold`.
+`purged_embargoed_kfold`. `cpcv_path_distribution` takes a *single* return series
+and reports how its out-of-sample Sharpe varies across the combinatorial test
+blocks (median, 5th percentile, fraction of paths positive) — a per-candidate
+path-robustness read shown in every candidate report. A low 5th-percentile Sharpe
+or a small positive-fraction flags a factor whose edge depends on which slice of
+history you look at.
 
 ## Extension points
 
