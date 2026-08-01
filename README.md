@@ -161,7 +161,14 @@ suite, reporting, offline bundle export, and deterministic + mock-AI generation.
 purged/embargoed cross-validation, and the constrained autonomous research agent
 (picks the least-explored family, screens on the development window only, never
 touches the locked test, and promotes only through the multi-gate decision
-function). **83 tests passing.** See [ROADMAP.md](docs/ROADMAP.md).
+function).
+
+**Phase C complete** — White's Reality Check and Hansen's SPA (family-level
+data-snooping tests), plus an optional real LLM provider
+(`AnthropicProvider`, `claude-opus-5`) behind the same protocol as the offline
+mock — install with `pip install 'emberforge[llm]'`; the core stays offline.
+
+**92 tests passing.** See [ROADMAP.md](docs/ROADMAP.md).
 
 ## Disclaimer
 

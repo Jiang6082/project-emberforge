@@ -26,9 +26,24 @@ smuggle in a look-ahead or arbitrary Python.
 
 ### Plugging in a real LLM
 
-Implement the `LLMProvider` protocol (`model: str`, `complete(prompt) -> str`)
-and pass it to `generate_ai`. The model id and a prompt hash are recorded on the
-experiment for reproducibility.
+`emberforge.generate.AnthropicProvider` is a ready-made real provider (Phase C).
+It is strictly **opt-in** — the core, tests, and demo never construct it — and
+needs `pip install 'emberforge[llm]'` plus Anthropic credentials in the
+environment:
+
+```python
+from emberforge.generate import generate_ai, AnthropicProvider
+spec = generate_ai("underexplored family: liquidity",
+                   provider=AnthropicProvider(model="claude-opus-5"))
+```
+
+It asks the model for **structured JSON** (via the API's `output_config` JSON
+schema), handles safety refusals, and — crucially — runs the returned expression
+through the same `parse → validate → causality` pipeline as any other factor, so
+a real LLM cannot smuggle in a look-ahead or arbitrary Python any more than the
+mock can. To supply a different backend, implement the `LLMProvider` protocol
+(`model: str`, `complete(prompt) -> str`) and pass it to `generate_ai`; the model
+id and a prompt hash are recorded on the experiment for reproducibility.
 
 ## Deterministic generators (implemented)
 

@@ -33,9 +33,18 @@ Still open in this track:
   offline core).
 * **Cross-feed stability** (needs a second data feed).
 
-## Phase C — statistical depth
+## Phase C — statistical depth & real LLM (implemented)
 
-* White's Reality Check and Hansen's SPA (extension points already reserved).
+* ✅ **White's Reality Check** and **Hansen's SPA** (`stats.reality_check`) —
+  family-level data-snooping tests over the best-of-N, wired into
+  `run_family_study` and shown in every candidate report.
+* ✅ **Optional real LLM provider** (`generate.AnthropicProvider`, Anthropic
+  `claude-opus-5` by default) behind the existing `LLMProvider` protocol —
+  opt-in via `pip install 'emberforge[llm]'`, structured-JSON output, refusal
+  handling; the core stays fully offline.
+
+Still open:
+
 * Combinatorial purged cross-validation (CPCV) as an alternative to CSCV PBO.
 * Transaction-cost and capacity modelling beyond the current bps proxy.
 

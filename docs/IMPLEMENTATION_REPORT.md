@@ -41,8 +41,8 @@ python -m emberforge.demo    # end-to-end; writes runtime/demo/
 
 ## 4. Test results
 
-**83 passed** (no network, no credentials, no Geld access) — 65 Phase A + 18
-Phase B. Coverage spans:
+**92 passed** (no network, no credentials, no Geld access) — 65 Phase A + 18
+Phase B + 9 Phase C. Coverage spans:
 expression parsing, canonicalization/hashing, causal lagging, invalid
 future-looking expressions, rolling windows, missing data, IC calculations,
 quantile construction, costs, deduplication, FDR adjustments, Deflated Sharpe,
@@ -129,7 +129,23 @@ never queried live, and cannot be traded by Emberforge. See
 * **Purged & embargoed cross-validation** (`emberforge.stats.cv`).
 
 All guardrails are enforced in code and covered by `tests/test_agent.py`,
-`tests/test_universe.py`, `tests/test_robustness.py` (18 new tests, **83 total**).
+`tests/test_universe.py`, `tests/test_robustness.py` (18 new tests, 83 total
+after Phase B).
+
+## Phase C additions (implemented)
+
+* **White's Reality Check** and **Hansen's SPA** (`emberforge.stats.reality_check`)
+  — family-level data-snooping tests over the best-of-N candidates, computed once
+  per `run_family_study` and surfaced in every candidate report as `white_rc_p` /
+  `spa_p`.
+* **Optional real LLM provider** (`emberforge.generate.AnthropicProvider`,
+  default `claude-opus-5`) behind the existing `LLMProvider` protocol. Opt-in via
+  `pip install 'emberforge[llm]'`; it asks the model for structured JSON, handles
+  safety refusals, and runs the output through the same causal-validation
+  pipeline as any factor. The core, tests, and demo remain fully offline (the
+  provider is covered by `tests/test_ai_provider.py` with a fake client).
+
+**92 tests total**, still no network / credentials / Geld access.
 
 ## 11. Known limitations & next steps
 

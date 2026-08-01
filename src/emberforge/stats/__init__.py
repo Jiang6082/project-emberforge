@@ -10,6 +10,7 @@ from .cv import Fold, purged_embargoed_kfold
 from .deflated_sharpe import DSRResult, deflated_sharpe, expected_max_sharpe
 from .multiple_testing import Adjusted, benjamini_hochberg, holm
 from .pbo import PBOResult, pbo_cscv
+from .reality_check import RealityCheckResult, hansens_spa, whites_reality_check
 
 __all__ = [
     "benjamini_hochberg", "holm", "Adjusted",
@@ -17,6 +18,7 @@ __all__ = [
     "pbo_cscv", "PBOResult",
     "circular_block_bootstrap", "BootstrapCI",
     "purged_embargoed_kfold", "Fold",
+    "whites_reality_check", "hansens_spa", "RealityCheckResult",
 ]
 
 

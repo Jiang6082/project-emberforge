@@ -23,9 +23,11 @@ from ..stats import (
     benjamini_hochberg,
     circular_block_bootstrap,
     deflated_sharpe,
+    hansens_spa,
     holm,
     ic_pvalue,
     pbo_cscv,
+    whites_reality_check,
 )
 from .decision import DecisionState, PromotionCriteria, decide
 
@@ -109,7 +111,14 @@ def run_family_study(
 
     # 3) PBO across the family from aligned LS return series
     ls_frame = pd.DataFrame({r.spec.factor_id: r.evaluation.ls_returns for r in results}).dropna()
-    pbo = pbo_cscv(ls_frame.values, n_splits=8).pbo if ls_frame.shape[1] >= 2 and len(ls_frame) >= 8 else float("nan")
+    have_family = ls_frame.shape[1] >= 2 and len(ls_frame) >= 8
+    pbo = pbo_cscv(ls_frame.values, n_splits=8).pbo if have_family else float("nan")
+    # family-wide data-snooping tests over the best-of-N (White RC, Hansen SPA)
+    if ls_frame.shape[1] >= 2 and len(ls_frame) >= 20:
+        white_rc_p = whites_reality_check(ls_frame.values, n_boot=500, seed=seed).p_value
+        spa_p = hansens_spa(ls_frame.values, n_boot=500, seed=seed).p_value
+    else:
+        white_rc_p = spa_p = float("nan")
 
     # variance of per-period Sharpe across the family, for the DSR trial penalty
     per_period_sr = []
@@ -139,6 +148,8 @@ def run_family_study(
             "p_holm": hl[i].p_adjusted,
             "dsr": dsr.dsr,
             "pbo": pbo,
+            "white_rc_p": white_rc_p,   # family-level (same across the family)
+            "spa_p": spa_p,             # family-level
             "sharpe_ci_lo": ci.lower,
             "sharpe_ci_hi": ci.upper,
         }

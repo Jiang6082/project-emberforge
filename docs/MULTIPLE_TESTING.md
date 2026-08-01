@@ -35,6 +35,23 @@ PBO means the *selection process itself* is overfit.
 Circular block resampling preserves short-horizon autocorrelation, giving honest
 confidence intervals for serially-correlated series (daily returns, IC series).
 
+### White's Reality Check — `stats.whites_reality_check`
+Tests whether the *best* factor among the family beats a zero benchmark once you
+account for having tried N of them (White, 2000). Input is the `T × N` matrix of
+diagnostic long-short returns; the null max statistic is bootstrapped with a
+circular block bootstrap. A high p-value means the best factor is
+indistinguishable from the luckiest of N noise series.
+
+### Hansen's SPA — `stats.hansens_spa`
+The Superior Predictive Ability test (Hansen, 2005): studentizes each factor and
+down-weights clearly-inferior ones (the "consistent" recentering), so a genuine
+edge buried among many bad candidates isn't masked. Reported as a family-level
+p-value alongside White's RC — Emberforge shows both because SPA is more powerful
+but White's is the more familiar reference.
+
+Both run over the family in `run_family_study` and appear in every candidate
+report as **family-level** evidence (`white_rc_p`, `spa_p`).
+
 ## The DSR / PBO input bridge
 
 Deflated Sharpe and PBO both consume the **diagnostic long-short portfolio's
@@ -52,7 +69,9 @@ For a family study (`research.pipeline.run_family_study`):
 5. the decision function requires FDR survival **and** `DSR ≥ threshold` **and**
    novelty — a high Sharpe alone never promotes.
 
-## Extension points (design-only in v1)
+## Extension points
 
-White's Reality Check, Hansen's SPA, combinatorial *purged* cross-validation, and
-embargoed cross-validation. See [ROADMAP.md](ROADMAP.md).
+Implemented in later phases: **White's Reality Check** and **Hansen's SPA**
+(`stats.reality_check`), and **purged/embargoed cross-validation**
+(`stats.cv.purged_embargoed_kfold`). Still design-only: combinatorial *purged*
+cross-validation (CPCV) as an alternative to CSCV PBO. See [ROADMAP.md](ROADMAP.md).
