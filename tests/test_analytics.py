@@ -1,7 +1,7 @@
 import numpy as np
 
 from emberforge.analytics import evaluate_factor, ic_stats
-from emberforge.analytics.portfolio import long_short_returns, quantile_buckets, quantile_returns, turnover
+from emberforge.analytics.portfolio import long_short_returns, quantile_buckets, turnover
 from emberforge.compute import compute_factor
 from emberforge.dsl import make_factor
 

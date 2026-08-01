@@ -1,5 +1,6 @@
 import pytest
 
+from emberforge.dsl import make_factor
 from emberforge.generate import (
     AISchemaError,
     MockProvider,
@@ -8,7 +9,6 @@ from emberforge.generate import (
     mutate_family,
     parse_ai_factor,
 )
-from emberforge.dsl import make_factor
 
 
 def test_templates_are_deterministic():

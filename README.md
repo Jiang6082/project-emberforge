@@ -67,9 +67,12 @@ what makes the one survivor trustworthy.
 git clone <this repo> && cd project-emberforge
 python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
-pytest                       # 65 tests, no network / credentials / external data
+pytest                       # full suite, no network / credentials / external data
 python -m emberforge.demo    # full research run on deterministic synthetic data
 ```
+
+**Development.** Run the fast core (skips the end-to-end / bootstrap-heavy tests)
+with `pytest -m "not slow"` (~30s); lint with `ruff check .`.
 
 The demo plants a *known* momentum effect in synthetic data, then throws 24
 candidates at it — the real momentum factor, near-duplicates, and noise. It

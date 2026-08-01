@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import re
 
-from .nodes import Call, Const, Field, Node, RAW_FIELDS
+from .nodes import RAW_FIELDS, Call, Const, Field, Node
 
 _TOKEN = re.compile(
     r"\s*(?:(?P<num>\d+\.?\d*(?:[eE][+-]?\d+)?)|(?P<ident>[A-Za-z_][A-Za-z0-9_]*)|(?P<op>[()+\-*/,]))"

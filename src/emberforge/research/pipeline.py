@@ -16,7 +16,7 @@ import pandas as pd
 from ..analytics import FactorEvaluation, evaluate_factor
 from ..compute import PreprocessConfig, compute_factor
 from ..data.schema import MarketData
-from ..dedup import classify, novelty_report
+from ..dedup import novelty_report
 from ..dsl.spec import FactorSpec
 from ..registry import ExperimentRecord, ExperimentRegistry
 from ..stats import (
@@ -135,7 +135,6 @@ def run_family_study(
     sr_var = float(np.var(per_period_sr, ddof=1)) if len(per_period_sr) > 1 else None
 
     # 4) per-candidate: DSR, bootstrap CI, dedup, decision
-    scores_by_id = {r.spec.factor_id: r.scores for r in results}
     survivors: list[str] = []
     for i, r in enumerate(results):
         dsr = deflated_sharpe(r.evaluation.ls_returns, n_trials=n_trials, sr_variance=sr_var)

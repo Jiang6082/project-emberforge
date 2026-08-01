@@ -1,4 +1,3 @@
-import numpy as np
 
 from emberforge.dsl import make_factor
 from emberforge.robustness import (

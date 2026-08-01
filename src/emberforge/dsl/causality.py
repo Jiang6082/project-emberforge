@@ -10,7 +10,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from . import operators
-from .nodes import Call, Const, Field, Node, depth, node_count, walk
+from .nodes import Call, Const, Node, depth, node_count, walk
 
 
 class CausalityError(ValueError):

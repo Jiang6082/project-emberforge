@@ -1,12 +1,12 @@
 """The agent's AI generation path is exercised offline via the MockProvider."""
 
+import pytest
+
 from emberforge.agent import ResearchAgent
 from emberforge.data import make_synthetic
 from emberforge.generate import MockProvider
 from emberforge.registry import ExperimentRegistry
 from emberforge.registry.holdout import ResearchBudget
-
-import pytest
 
 pytestmark = pytest.mark.slow
 
@@ -37,7 +37,6 @@ def test_agent_without_provider_has_no_ai(tmp_path):
 def test_ai_candidates_still_go_through_validation(tmp_path):
     # a provider that emits a look-ahead expression must not produce an experiment
     import json
-    import types
 
     class LeakyProvider:
         model = "leaky"

@@ -1,9 +1,9 @@
+import pytest
+
 from emberforge.agent import ResearchAgent
 from emberforge.data import make_synthetic
 from emberforge.registry import ExperimentRegistry
 from emberforge.registry.holdout import ResearchBudget
-
-import pytest
 
 pytestmark = pytest.mark.slow
 

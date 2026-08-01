@@ -9,7 +9,6 @@ of ``field -> DataFrame(index=timestamp, columns=symbol)``.
 from __future__ import annotations
 
 import hashlib
-from typing import Optional
 
 import pandas as pd
 from pydantic import BaseModel, ConfigDict
@@ -27,8 +26,8 @@ class DatasetMetadata(BaseModel):
     feed: str = "synthetic"
     version: str = "v1"
     symbols: tuple[str, ...] = ()
-    start: Optional[str] = None
-    end: Optional[str] = None
+    start: str | None = None
+    end: str | None = None
     fingerprint: str = ""
 
 
@@ -88,7 +87,7 @@ class MarketData:
         close = self.panels["close"]
         return close.shift(-horizon) / close - 1.0
 
-    def subset(self, mask: pd.Series) -> "MarketData":
+    def subset(self, mask: pd.Series) -> MarketData:
         """Return a new MarketData restricted to timestamps where ``mask`` is True.
 
         Used to evaluate on a development/validation window without ever exposing
@@ -98,7 +97,7 @@ class MarketData:
         panels = {name: df.loc[idx] for name, df in self.panels.items()}
         return MarketData(panels, self.metadata.model_copy(update={"fingerprint": ""}))
 
-    def subset_by_date(self, start=None, end=None) -> "MarketData":
+    def subset_by_date(self, start=None, end=None) -> MarketData:
         idx = self.index
         mask = pd.Series(True, index=idx)
         if start is not None:

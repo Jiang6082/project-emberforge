@@ -8,8 +8,8 @@ pipeline, so an invalid factor can never exist as a ``FactorSpec``.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
-from typing import Literal, Optional
+from datetime import UTC, datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
@@ -49,7 +49,7 @@ class FactorSpec(BaseModel):
     expected_sign: Literal[1, -1, 0] = 0
     generator: str = "manual"
     parent_ids: tuple[str, ...] = ()
-    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    created_at: str = Field(default_factory=lambda: datetime.now(UTC).isoformat())
 
     # Derived / validated fields (populated in the model validator).
     canonical_expression: str = ""
@@ -66,7 +66,7 @@ class FactorSpec(BaseModel):
         return v
 
     @model_validator(mode="after")
-    def _compile(self) -> "FactorSpec":
+    def _compile(self) -> FactorSpec:
         tree: Node = parser.parse(self.expression)
         causality.validate(tree)
         derived = {

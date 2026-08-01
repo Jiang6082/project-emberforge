@@ -1,4 +1,3 @@
-import numpy as np
 import pandas as pd
 
 from emberforge.compute import compute_factor

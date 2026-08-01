@@ -1,7 +1,7 @@
 """Market-data abstraction: schema, synthetic generator, loaders."""
 
 from .loaders import load_csv_dir, load_geld_bars, load_parquet
-from .schema import DatasetMetadata, FIELDS, MarketData
+from .schema import FIELDS, DatasetMetadata, MarketData
 from .synthetic import make_synthetic
 
 __all__ = [

@@ -71,7 +71,6 @@ def test_evaluation_exposes_capacity_and_cost_sensitivity(data):
 def test_capacity_tracks_recent_liquidity_not_full_history(data):
     # a liquidity dry-up in the recent window should lower the capacity estimate,
     # even though the full-history median is unchanged.
-    from copy import deepcopy
 
     from emberforge.data.schema import MarketData
 

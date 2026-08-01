@@ -11,10 +11,9 @@ from __future__ import annotations
 import json
 import sqlite3
 import uuid
-from dataclasses import asdict, dataclass, field
-from datetime import datetime, timezone
+from dataclasses import dataclass, field
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Optional
 
 from .gitinfo import git_provenance
 
@@ -64,23 +63,23 @@ class ExperimentRecord:
     expression: str
     expression_hash: str
     status: str = "generated"
-    parent_id: Optional[str] = None
+    parent_id: str | None = None
     generator: str = "manual"
     command: str = ""
     config: dict = field(default_factory=dict)
     dataset_fingerprint: str = ""
     universe_fingerprint: str = ""
-    seed: Optional[int] = None
-    train_end: Optional[str] = None
-    valid_end: Optional[str] = None
-    failure_reason: Optional[str] = None
+    seed: int | None = None
+    train_end: str | None = None
+    valid_end: str | None = None
+    failure_reason: str | None = None
     holdout_viewed: bool = False
-    llm_model: Optional[str] = None
-    prompt_hash: Optional[str] = None
+    llm_model: str | None = None
+    prompt_hash: str | None = None
     metrics: dict = field(default_factory=dict)
     artifacts: dict = field(default_factory=dict)
     experiment_id: str = field(default_factory=lambda: uuid.uuid4().hex[:16])
-    created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    created_at: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
 
 
 class ExperimentRegistry:
@@ -167,7 +166,7 @@ class ExperimentRegistry:
         with self._conn() as c:
             cur = c.execute(
                 "INSERT INTO holdout_access (family, experiment_id, accessed_at, reason) VALUES (?,?,?,?)",
-                (family, experiment_id, datetime.now(timezone.utc).isoformat(), reason),
+                (family, experiment_id, datetime.now(UTC).isoformat(), reason),
             )
             if experiment_id:
                 c.execute("UPDATE experiments SET holdout_viewed=1 WHERE experiment_id=?", (experiment_id,))

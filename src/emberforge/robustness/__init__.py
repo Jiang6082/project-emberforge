@@ -7,14 +7,13 @@ can demand it — not just a good full-sample number.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from typing import Callable
+from dataclasses import dataclass
 
 import numpy as np
 import pandas as pd
 
 from ..analytics.ic import ic_series
-from ..compute import PreprocessConfig, compute_factor
+from ..compute import compute_factor
 from ..data.schema import MarketData
 from ..dsl.spec import FactorSpec, make_factor
 

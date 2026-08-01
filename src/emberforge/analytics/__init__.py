@@ -2,11 +2,9 @@
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass, field
+from dataclasses import dataclass, field
 
 import pandas as pd
-
-import numpy as np
 
 from ..compute import PreprocessConfig, compute_factor
 from ..data.schema import MarketData

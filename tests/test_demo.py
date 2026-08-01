@@ -1,8 +1,8 @@
 """The end-to-end demo is itself an acceptance test."""
 
-from emberforge.demo import run_demo
-
 import pytest
+
+from emberforge.demo import run_demo
 
 pytestmark = pytest.mark.slow
 

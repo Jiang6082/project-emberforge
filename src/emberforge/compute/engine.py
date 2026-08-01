@@ -14,9 +14,8 @@ import numpy as np
 import pandas as pd
 
 from ..data.schema import MarketData
-from ..dsl import causality
+from ..dsl import causality, operators
 from ..dsl.nodes import Call, Const, Field, Node
-from ..dsl import operators
 from ..dsl.spec import FactorSpec
 
 

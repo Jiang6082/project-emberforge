@@ -1,8 +1,7 @@
 import numpy as np
+import pytest
 
 from emberforge.stats import hansens_spa, whites_reality_check
-
-import pytest
 
 pytestmark = pytest.mark.slow
 

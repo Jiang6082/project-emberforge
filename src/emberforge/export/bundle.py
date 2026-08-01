@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from ..dsl.spec import FactorSpec
@@ -88,7 +88,7 @@ def export_candidate(
         "source_project": "emberforge",
         "source_commit": prov["git_commit"],
         "source_dirty": prov["git_dirty"],
-        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_at": datetime.now(UTC).isoformat(),
         "approval_state": "human_approved",
         "universe_assumptions": data_provenance.get("universe", "research-only"),
         "preprocessing": evaluation_metrics.get("preprocessing", "see evaluation.json"),
