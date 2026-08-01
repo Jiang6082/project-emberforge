@@ -1,92 +1,169 @@
 # Project Emberforge
 
-Emberforge is an **AI-assisted factor-research platform with false-discovery
-control**. It generates candidate factors, computes them causally, evaluates
-their statistical and economic behavior, controls for multiple testing and
-selection bias, and exports human-approved candidates as offline, checksummed
-bundles.
+**An AI-assisted platform for discovering quantitative trading factors — built to
+stop you from fooling yourself.**
 
-> Emberforge is a **research system, not a trading bot.** It never places orders,
-> never requires credentials, and communicates with Project Geld only through a
-> manual, one-way, offline bundle. See
-> [`docs/PROJECT_GELD_INTERFACE_NOTES.md`](docs/PROJECT_GELD_INTERFACE_NOTES.md).
+Emberforge helps you invent, test, and vet *factors* (systematic signals that try
+to predict which stocks will outperform). The hard part of factor research isn't
+finding something that looks good on historical data — with enough tries, pure
+noise will. The hard part is telling a real edge apart from a lucky fluke.
+Emberforge is engineered around that problem: it records **every** attempt,
+penalizes results for how many things you tried, hunts for hidden look-ahead
+bugs, flags rediscovered duplicates, and refuses to call anything "proven."
 
-## The guiding principle
+> Emberforge is a **research system, not a trading bot.** It has no brokerage
+> code, needs no credentials, places no orders, and requires no paid data or LLM
+> API key to run. It talks to its companion trading project (Project Geld) only
+> through a manual, one-way, offline file — never live.
 
-The goal is **not** to search until a high Sharpe appears — it is to make it hard
-to fool ourselves. Every candidate, failed experiment, mutation, and holdout
-access is recorded. A factor that looks good after 24 attempts is treated
-differently from one specified once and validated cleanly. See
-[`docs/SCIENTIFIC_METHOD.md`](docs/SCIENTIFIC_METHOD.md).
+---
 
-## Install
+## Why it exists
+
+A quant researcher's workflow is a minefield of ways to accidentally lie to
+yourself:
+
+| Trap | What Emberforge does about it |
+|---|---|
+| A signal secretly peeks at the future | Rejects non-causal expressions statically **and** catches leakage dynamically by perturbing future data |
+| You try 1,000 factors and cherry-pick the best | Records every trial and feeds that count into the statistics (Deflated Sharpe, FDR) so the winner's bar rises with the number of attempts |
+| You reuse the test set until something passes | Governs and logs every locked-holdout access, warns on reuse, and hard-blocks past a budget |
+| You "discover" the same idea five times | Three-layer duplicate detection (formula, correlation, economic family) |
+| A high Sharpe ratio dazzles you | Promotion requires statistical *and* stability *and* novelty gates — a high Sharpe alone never promotes |
+
+The strongest label any candidate can earn is **`research_survivor`**, never
+"alpha."
+
+---
+
+## What it does, end to end
+
+```
+Research hypothesis
+   → Declarative factor specification (a safe, typed mini-language — never arbitrary code)
+   → Causal factor computation (no future data can leak in)
+   → Data-quality & leakage checks
+   → Cross-sectional analytics (IC, decay, quantiles, diagnostic long/short)
+   → Deduplication & novelty analysis
+   → Train / validation evaluation
+   → Multiple-testing adjustment (Benjamini–Hochberg, Holm, Deflated Sharpe, PBO, bootstrap)
+   → Robustness & regime analysis
+   → Candidate decision
+   → Human approval
+   → Offline, checksummed export bundle
+```
+
+Every candidate, failed experiment, and mutation is written to an SQLite
+registry. The point of the system is the **record of everything tried** — that's
+what makes the one survivor trustworthy.
+
+---
+
+## See it work in 60 seconds
 
 ```bash
-cd project-emberforge
-python -m venv .venv
-source .venv/bin/activate
+git clone <this repo> && cd project-emberforge
+python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
+pytest                       # 65 tests, no network / credentials / external data
+python -m emberforge.demo    # full research run on deterministic synthetic data
 ```
 
-No paid data and no LLM API key are required. The default provider for
-AI-assisted generation is a deterministic offline mock.
+The demo plants a *known* momentum effect in synthetic data, then throws 24
+candidates at it — the real momentum factor, near-duplicates, and noise. It
+correctly:
 
-## Run the tests
+* **keeps** the genuine factor (`momentum_20`: IC t-stat 4.7, survives FDR),
+* **rejects** the noise factors,
+* **flags** the duplicates,
+* records all 24 attempts, and
+* exports the single survivor as a human-approved, checksummed bundle.
+
+Output lands in `runtime/demo/`:
+
+```
+registry.sqlite3          every experiment, including the failures
+reports/<factor>.md|.json per-candidate reports (raw vs. adjusted evidence)
+family_report.md          aggregate dashboard ranking all candidates
+candidate_bundle/         the one exported survivor (+ checksums.txt)
+summary.json
+```
+
+---
+
+## A taste of the factor language
+
+Factors are written in a small, safe expression language — not Python — so they
+can be parsed, hashed, deduplicated, and checked for look-ahead:
+
+```
+ts_returns(close, 20)                          # 20-day momentum
+neg(ts_std(ts_returns(close, 1), 25))          # low-volatility premium
+cs_rank(divide(volume, ts_mean(volume, 20)))   # relative volume spike
+```
 
 ```bash
-pytest
-```
-
-## Run the end-to-end demo
-
-```bash
-python -m emberforge.demo
-# or
-emberforge demo --out runtime/demo
-```
-
-The demo generates a known momentum factor plus duplicates and noise factors,
-evaluates them, detects duplicates, applies multiple-testing corrections, rejects
-the weak/duplicate candidates, retains one **research survivor**, writes reports,
-and exports one human-approved bundle. Crucially, it records **everything tried**,
-not just the winner:
-
-```
-runtime/demo/
-    registry.sqlite3          # every experiment, including failures
-    reports/<factor>.md|.json # per-candidate reports
-    family_report.md          # aggregate dashboard (raw vs adjusted evidence)
-    candidate_bundle/         # the one exported, checksummed survivor
-    summary.json
-```
-
-## CLI
-
-```bash
-emberforge data validate
-emberforge factor validate "ts_returns(close, 20)"
-emberforge factor evaluate "ts_returns(close, 20)" --horizon 1
-emberforge factor compare "ts_returns(close,20)" "ts_delta(close,20)"
+emberforge factor validate  "ts_returns(close, 20)"
+emberforge factor evaluate  "ts_returns(close, 20)" --horizon 1
+emberforge factor compare   "ts_returns(close,20)" "ts_delta(close,20)"
 emberforge generate templates
-emberforge experiment list --registry runtime/demo/registry.sqlite3
-emberforge experiment show <experiment_id> --registry runtime/demo/registry.sqlite3
+emberforge experiment list  --registry runtime/demo/registry.sqlite3 --family momentum_family
 emberforge demo
 ```
+
+A negative or zero look-back is rejected as look-ahead before it can ever run.
+
+---
+
+## Relationship to Project Geld
+
+Emberforge is the **research sibling** of [Project Geld](https://github.com/Jiang6082/project-geld),
+a paper-trading bot. The boundary is strict and one-directional:
+
+* Emberforge treats Geld as **read-only** — it never modifies Geld, its config,
+  its accounts, or its data.
+* The only thing that ever crosses over is a **manual, offline, checksummed
+  candidate bundle** that a human reviews and copies. No APIs, no shared
+  databases, no hooks, no live link.
+* Emberforge cannot place a trade; it contains no brokerage code at all.
+
+This is enforced by tests, not just convention. See
+[`docs/PROJECT_GELD_INTERFACE_NOTES.md`](docs/PROJECT_GELD_INTERFACE_NOTES.md).
+
+---
 
 ## Documentation
 
 | Doc | Contents |
 |---|---|
 | [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Module map and data flow |
-| [SCIENTIFIC_METHOD.md](docs/SCIENTIFIC_METHOD.md) | Anti-self-deception design |
+| [SCIENTIFIC_METHOD.md](docs/SCIENTIFIC_METHOD.md) | The anti-self-deception design |
 | [FACTOR_DSL.md](docs/FACTOR_DSL.md) | The declarative factor language |
 | [EXPERIMENT_REGISTRY.md](docs/EXPERIMENT_REGISTRY.md) | Lineage, trial counts, holdout governance |
 | [MULTIPLE_TESTING.md](docs/MULTIPLE_TESTING.md) | BH, Holm, Deflated Sharpe, PBO, bootstrap |
-| [AI_RESEARCH_AGENT.md](docs/AI_RESEARCH_AGENT.md) | AI generation & constrained agent (Phase B) |
-| [PROJECT_GELD_INTERFACE_NOTES.md](docs/PROJECT_GELD_INTERFACE_NOTES.md) | What Geld actually is; the boundary |
+| [AI_RESEARCH_AGENT.md](docs/AI_RESEARCH_AGENT.md) | AI generation & the constrained agent |
+| [PROJECT_GELD_INTERFACE_NOTES.md](docs/PROJECT_GELD_INTERFACE_NOTES.md) | What Geld is; the boundary |
 | [CANDIDATE_BUNDLE.md](docs/CANDIDATE_BUNDLE.md) | The offline export format |
-| [ROADMAP.md](docs/ROADMAP.md) | Phase B and beyond |
+| [ROADMAP.md](docs/ROADMAP.md) | What's next |
 | [IMPLEMENTATION_REPORT.md](docs/IMPLEMENTATION_REPORT.md) | Build summary & acceptance evidence |
+
+---
+
+## Status
+
+**Phase A (MVP) complete** — declarative DSL, causal compute, analytics, registry
+with lineage and holdout governance, three-layer dedup, the full multiple-testing
+suite, reporting, offline bundle export, and deterministic + mock-AI generation.
+65 tests passing.
+
+**Phase B (in progress)** — point-in-time universe support, robustness/regime
+analysis, and the constrained autonomous research agent. See
+[ROADMAP.md](docs/ROADMAP.md).
+
+## Disclaimer
+
+Research tooling for studying factor-discovery methodology. Nothing here is
+investment advice, and no output is a validated trading strategy.
 
 ## License
 
