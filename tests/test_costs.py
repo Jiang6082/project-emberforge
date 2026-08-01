@@ -68,6 +68,23 @@ def test_evaluation_exposes_capacity_and_cost_sensitivity(data):
     assert "cost_sensitivity" in metrics and metrics["cost_sensitivity"]
 
 
+def test_capacity_tracks_recent_liquidity_not_full_history(data):
+    # a liquidity dry-up in the recent window should lower the capacity estimate,
+    # even though the full-history median is unchanged.
+    from copy import deepcopy
+
+    from emberforge.data.schema import MarketData
+
+    ev_full = evaluate_factor(make_factor("m", "ts_returns(close,20)"), data, adv_window=63)
+
+    panels = {k: v.copy() for k, v in data.panels.items()}
+    panels["volume"].iloc[-63:] *= 0.05  # recent volume collapses
+    thin = MarketData(panels, data.metadata)
+    ev_thin = evaluate_factor(make_factor("m", "ts_returns(close,20)"), thin, adv_window=63)
+
+    assert ev_thin.capacity_usd < ev_full.capacity_usd
+
+
 def test_portfolio_stats_uses_cost_model_for_net_sharpe(data):
     from emberforge.analytics import portfolio_stats
     from emberforge.analytics.costs import CostModel

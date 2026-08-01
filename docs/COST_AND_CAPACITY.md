@@ -40,11 +40,14 @@ most-volatile names dominate — a portfolio that must trade a thin name caps ou
 below what its *median* ADV would suggest (verified by
 `tests/test_costs.py::test_per_name_adv_least_liquid_dominates`).
 
-`evaluate_factor` builds the per-name ADV (`median(volume × close)` per symbol
-over eligible cells) and per-name daily volatility from the dataset, then reports
-`capacity_usd` in every candidate report alongside a `cost_sensitivity` curve —
-annualized Sharpe at several flat bps levels — so a reviewer can see how fragile
-the edge is to costs at a glance.
+`evaluate_factor` builds the per-name ADV and per-name daily volatility from a
+**trailing window** (`adv_window`, default 63 bars) rather than the full history,
+so capacity tracks *current* liquidity — a recent dry-up lowers the estimate even
+when the lifetime median is unchanged. It reports `capacity_usd` in every
+candidate report alongside a `cost_sensitivity` curve — annualized Sharpe at
+several flat bps levels — so a reviewer can see how fragile the edge is to costs
+at a glance. The same `CostModel` drives the headline net Sharpe, so the three
+figures are mutually consistent.
 
 ## Where it shows up
 

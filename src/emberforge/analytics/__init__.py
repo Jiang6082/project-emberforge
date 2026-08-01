@@ -77,10 +77,14 @@ def evaluate_factor(
     cost_bps: float = 5.0,
     preprocess: PreprocessConfig = PreprocessConfig(),
     universe=None,
+    adv_window: int = 63,
 ) -> FactorEvaluation:
     """Compute and evaluate a factor end-to-end (analytics only, no stats gates).
 
     If ``universe`` is given, its point-in-time-safe eligibility mask is applied.
+    ``adv_window`` is the trailing window (in bars) used to estimate each name's
+    recent average daily dollar volume for the capacity calc, so capacity tracks
+    *current* liquidity rather than a full-history snapshot.
     """
     eligibility = None
     if universe is not None:
@@ -99,9 +103,11 @@ def evaluate_factor(
         dollar_vol = data.field("volume") * data.field("close")
         if eligibility is not None:
             dollar_vol = dollar_vol.where(eligibility.reindex_like(dollar_vol).fillna(False))
-        adv_per_name = dollar_vol.median(axis=0).dropna().values          # per-symbol ADV ($)
-        vol_per_name = data.field("close").pct_change().std(axis=0)
-        vol_per_name = vol_per_name.reindex(dollar_vol.median(axis=0).dropna().index).values
+        recent = dollar_vol.tail(adv_window)                  # trailing window → current liquidity
+        adv_series = recent.median(axis=0).dropna()
+        adv_per_name = adv_series.values                      # per-symbol recent ADV ($)
+        vol_per_name = data.field("close").pct_change().tail(adv_window).std(axis=0)
+        vol_per_name = vol_per_name.reindex(adv_series.index).values
         if adv_per_name.size == 0:
             adv_per_name, vol_per_name = float("nan"), None
     except Exception:
