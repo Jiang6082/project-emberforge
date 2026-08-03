@@ -69,6 +69,24 @@ read-only adapter (`emberforge.data.loaders.load_geld_bars`) that maps Geld's
 Geld stores none). The adapter opens Geld's SQLite in read-only mode
 (`file:...?mode=ro`) and imports nothing from `geld.*`.
 
+## Verifying the read-only adapter
+
+`emberforge.data.load_geld_bars` is exercised end-to-end against a database built
+with Geld's **exact** `market_bars` schema in `tests/test_geld_adapter.py`
+(self-contained, no external data), which also proves the connection is
+genuinely read-only (a `mode=ro` write raises, and the file is byte-identical
+before/after). `examples/geld_adapter_smoke.py` runs the same check against a
+*real* Geld database:
+
+```bash
+python examples/geld_adapter_smoke.py [path/to/geld.sqlite3] [TIMEFRAME]
+```
+
+Note: Geld's real `market_bars` table is **empty today** — Geld only caches bars
+after a successful Alpaca fetch, which needs credentials and a live run. Until
+then the smoke script skips cleanly. The adapter is verified against the schema
+regardless.
+
 ## The boundary — what may cross it
 
 **One way, offline, manual only.** Emberforge → Geld communication is a
