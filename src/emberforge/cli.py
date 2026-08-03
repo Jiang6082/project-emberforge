@@ -142,6 +142,14 @@ def cmd_research_agent_run(args) -> int:
     return 0
 
 
+def cmd_export_verify(args) -> int:
+    from .export import validate_bundle
+
+    result = validate_bundle(args.bundle_dir)
+    print(json.dumps(result.summary(), indent=2, default=str))
+    return 0 if result.ok else 1
+
+
 def cmd_demo(args) -> int:
     from .demo import run_demo
 
@@ -194,6 +202,11 @@ def build_parser() -> argparse.ArgumentParser:
                      help="also propose LLM-generated candidates (mock = offline)")
     rar.add_argument("--ai-model", default="claude-opus-5")
     rar.set_defaults(func=cmd_research_agent_run)
+
+    ex = sub.add_parser("export", help="candidate-bundle commands").add_subparsers(dest="sub", required=True)
+    exv = ex.add_parser("verify", help="independently validate a candidate bundle")
+    exv.add_argument("bundle_dir")
+    exv.set_defaults(func=cmd_export_verify)
 
     dm = sub.add_parser("demo", help="run the end-to-end demonstration")
     dm.add_argument("--out", default="runtime/demo"); dm.set_defaults(func=cmd_demo)

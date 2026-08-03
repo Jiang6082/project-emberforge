@@ -46,12 +46,29 @@ missing files. `checksums.txt` covers all files except itself. The demo asserts
 `checksums_ok is True` after export, and `tests/test_export.py` proves that
 tampering with any file breaks verification.
 
-## Designed for a future Geld validator
+## The validator
 
-The schema is intentionally simple and self-describing so a validator *could* be
-written on the Geld side later — but **no such validator exists in Geld today**,
-and Emberforge never modifies Geld. Consumption is a manual, human-in-the-loop
-step.
+`export.validate_bundle(dir)` (CLI: `emberforge export verify <dir>`) is the
+independent check a reviewer — or Project Geld — runs before trusting a bundle.
+Beyond `verify_bundle`'s checksums it, from scratch:
+
+* re-parses `factor.json`'s `expression` through the DSL,
+* re-runs the structure and **causality** checks (rejects any look-ahead),
+* recomputes the canonical form and hash and compares them to what was shipped
+  (so a tampered declarative spec is caught even if checksums were regenerated),
+* confirms the schema version is supported and `approval_state` is
+  `human_approved`.
+
+It imports only Emberforge's DSL — no market data, no network — so it is safe to
+run anywhere. It returns a per-check report:
+
+```json
+{"ok": true, "checks": {"expression_causal": true, "hash_matches": true, ...}, "problems": []}
+```
+
+The schema stays simple and self-describing so Geld could adopt this validator
+directly — but Emberforge never modifies Geld; consumption remains a manual,
+human-in-the-loop step.
 
 ## Fields in `manifest.json`
 
