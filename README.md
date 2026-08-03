@@ -145,6 +145,7 @@ This is enforced by tests, not just convention. See
 
 | Doc | Contents |
 |---|---|
+| [TUTORIAL.md](docs/TUTORIAL.md) | **How to run and actually use it** |
 | [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Module map and data flow |
 | [SCIENTIFIC_METHOD.md](docs/SCIENTIFIC_METHOD.md) | The anti-self-deception design |
 | [FACTOR_DSL.md](docs/FACTOR_DSL.md) | The declarative factor language |
