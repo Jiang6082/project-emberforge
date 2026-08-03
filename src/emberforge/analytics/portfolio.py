@@ -16,16 +16,18 @@ TRADING_DAYS = 252
 
 
 def quantile_buckets(scores: pd.DataFrame, q: int = 5) -> pd.DataFrame:
-    """Assign each (t, symbol) score to a quantile 0..q-1 within its row."""
-    def _row(row: pd.Series) -> pd.Series:
-        valid = row.dropna()
-        if valid.nunique() < q:
-            return pd.Series(np.nan, index=row.index)
-        ranks = valid.rank(method="first")
-        buckets = np.ceil(ranks / len(valid) * q) - 1
-        return buckets.reindex(row.index)
+    """Assign each (t, symbol) score to a quantile 0..q-1 within its row.
 
-    return scores.apply(_row, axis=1)
+    Vectorized: per-row first-rank / count / ceil, matching the earlier row-wise
+    apply exactly (rows with fewer than ``q`` distinct values are all-NaN).
+    """
+    counts = scores.notna().sum(axis=1)
+    ranks = scores.rank(axis=1, method="first")
+    with np.errstate(invalid="ignore"):
+        buckets = np.ceil(ranks.div(counts, axis=0).to_numpy() * q) - 1
+    invalid = scores.nunique(axis=1).to_numpy() < q
+    buckets[invalid, :] = np.nan
+    return pd.DataFrame(buckets, index=scores.index, columns=scores.columns)
 
 
 def quantile_returns(scores: pd.DataFrame, fwd_returns: pd.DataFrame, q: int = 5) -> pd.Series:
@@ -47,21 +49,27 @@ def long_short_returns(scores: pd.DataFrame, fwd_returns: pd.DataFrame, q: int =
 
 
 def turnover(scores: pd.DataFrame, q: int = 5) -> float:
-    """Average fraction of top-quantile names replaced period over period."""
-    buckets = quantile_buckets(scores, q)
-    top_sets = [set(row.index[row == q - 1]) for _, row in buckets.iterrows()]
-    changes = []
-    for prev, cur in zip(top_sets, top_sets[1:]):
-        if prev:
-            changes.append(len(prev - cur) / len(prev))
-    return float(np.mean(changes)) if changes else float("nan")
+    """Average fraction of top-quantile names replaced period over period.
+
+    Vectorized: for each consecutive pair, the fraction of the prior top-quantile
+    names no longer in the current top quantile, averaged over periods with a
+    non-empty prior top quantile.
+    """
+    top = quantile_buckets(scores, q).eq(q - 1)
+    prev = top.shift(1, fill_value=False)
+    left = (prev & ~top).sum(axis=1)
+    denom = prev.sum(axis=1)
+    mask = denom > 0
+    if not mask.any():
+        return float("nan")
+    return float((left[mask] / denom[mask]).mean())
 
 
 def score_autocorr(scores: pd.DataFrame, lag: int = 1) -> float:
-    a = scores.shift(lag)
-    corrs = [scores.loc[t].corr(a.loc[t]) for t in scores.index if a.loc[t].notna().any()]
-    corrs = [c for c in corrs if not np.isnan(c)]
-    return float(np.mean(corrs)) if corrs else float("nan")
+    """Mean cross-sectional autocorrelation of scores at ``lag`` (vectorized)."""
+    corrs = scores.corrwith(scores.shift(lag), axis=1)
+    corrs = corrs[~corrs.isna()]
+    return float(corrs.mean()) if len(corrs) else float("nan")
 
 
 @dataclass(frozen=True)
