@@ -155,6 +155,7 @@ This is enforced by tests, not just convention. See
 | [PROJECT_GELD_INTERFACE_NOTES.md](docs/PROJECT_GELD_INTERFACE_NOTES.md) | What Geld is; the boundary |
 | [CANDIDATE_BUNDLE.md](docs/CANDIDATE_BUNDLE.md) | The offline export format |
 | [ROADMAP.md](docs/ROADMAP.md) | What's next |
+| [CHANGELOG.md](CHANGELOG.md) | Release history |
 | [IMPLEMENTATION_REPORT.md](docs/IMPLEMENTATION_REPORT.md) | Build summary & acceptance evidence |
 
 ---
@@ -186,7 +187,7 @@ standalone bundle validator that independently re-parses/re-checks an exported
 candidate, vectorized analytics (~14× faster quantiles), and property-based DSL
 fuzzing (Hypothesis).
 
-**135 tests passing.** See [ROADMAP.md](docs/ROADMAP.md).
+**140 tests passing.** See [ROADMAP.md](docs/ROADMAP.md).
 
 ## Disclaimer
 
