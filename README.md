@@ -179,7 +179,7 @@ estimate), a transaction-cost & capacity model (spread + √-participation marke
 impact + borrow, with a capacity estimate and cost-sensitivity curve), and
 AI-assisted generation wired into the research agent (mock offline, or Anthropic).
 
-**120 tests passing.** See [ROADMAP.md](docs/ROADMAP.md).
+**135 tests passing.** See [ROADMAP.md](docs/ROADMAP.md).
 
 ## Disclaimer
 
