@@ -112,9 +112,11 @@ emberforge factor validate    "ts_returns(close, 20)"
 emberforge factor evaluate     "ts_returns(close, 20)" --horizon 1
 emberforge factor compare      "ts_returns(close,20)" "ts_delta(close,20)"
 emberforge factor robustness   "ts_returns(close,20)" --template "ts_returns(close,{w})" --params 10,20,30,40
+emberforge factor walkforward  "ts_returns(close,20)" --windows 5
 emberforge generate templates
 emberforge experiment list     --registry runtime/demo/registry.sqlite3 --family momentum_family
 emberforge research-agent run  --families momentum,volatility --budget 40
+emberforge export verify       runtime/demo/candidate_bundle
 emberforge demo
 ```
 
@@ -178,6 +180,11 @@ mock — install with `pip install 'emberforge[llm]'`; the core stays offline.
 estimate), a transaction-cost & capacity model (spread + √-participation market
 impact + borrow, with a capacity estimate and cost-sensitivity curve), and
 AI-assisted generation wired into the research agent (mock offline, or Anthropic).
+
+**Hardening complete** — walk-forward (sequential out-of-sample) evaluation, a
+standalone bundle validator that independently re-parses/re-checks an exported
+candidate, vectorized analytics (~14× faster quantiles), and property-based DSL
+fuzzing (Hypothesis).
 
 **135 tests passing.** See [ROADMAP.md](docs/ROADMAP.md).
 
