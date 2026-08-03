@@ -69,10 +69,24 @@ Still open in this track:
   the `workflow` scope to push (`gh auth refresh -s workflow`, then
   `git add -f .github/workflows/ci.yml`).
 
+## Hardening (implemented)
+
+* ✅ **Walk-forward evaluation** (`research.walk_forward`, CLI `factor
+  walkforward`) — sequential out-of-sample windows after an in-sample warm-up,
+  reporting per-window IC/Sharpe and OOS stability, so factor decay is visible
+  instead of hidden behind a single split.
+* ✅ **Standalone bundle validator** (`export.validate_bundle`, CLI `export
+  verify`) — re-parses the exported expression, re-runs causality, recomputes the
+  hash, and checks schema + approval.
+* ✅ **Vectorized analytics** — `quantile_buckets`/`turnover`/`score_autocorr`
+  rewritten without row-wise apply (~14× faster, identical output).
+
 ## Remaining / future
 
 * Per-name ADV as a rolling time series (currently a per-symbol median snapshot)
   and venue-calibrated impact coefficients.
+* Walk-forward with per-window parameter *re-selection* (the current version
+  evaluates a fixed factor; the window framing is the hook for it).
 
 ## Phase D — interoperability
 

@@ -142,6 +142,17 @@ def cmd_research_agent_run(args) -> int:
     return 0
 
 
+def cmd_factor_walkforward(args) -> int:
+    from .dsl import make_factor
+    from .research import walk_forward
+
+    data = _load_data(args)
+    spec = make_factor("cli_factor", args.expression)
+    result = walk_forward(spec, data, n_windows=args.windows, horizon=args.horizon)
+    print(json.dumps(result.summary(), indent=2, default=str))
+    return 0
+
+
 def cmd_export_verify(args) -> int:
     from .export import validate_bundle
 
@@ -180,6 +191,9 @@ def build_parser() -> argparse.ArgumentParser:
     fr.add_argument("--template", default=None, help="sensitivity template with {w}")
     fr.add_argument("--params", default=None, help="comma-separated integer params")
     add_data_opts(fr); fr.set_defaults(func=cmd_factor_robustness)
+    fw = f.add_parser("walkforward"); fw.add_argument("expression")
+    fw.add_argument("--horizon", type=int, default=1); fw.add_argument("--windows", type=int, default=5)
+    add_data_opts(fw); fw.set_defaults(func=cmd_factor_walkforward)
 
     g = sub.add_parser("generate", help="generation commands").add_subparsers(dest="sub", required=True)
     gt = g.add_parser("templates"); gt.set_defaults(func=cmd_generate_templates)
