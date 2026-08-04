@@ -161,6 +161,18 @@ def cmd_export_verify(args) -> int:
     return 0 if result.ok else 1
 
 
+def cmd_export_geld_bundle(args) -> int:
+    from pathlib import Path
+
+    from .export import export_geld_bundle_v1, from_native_bundle
+
+    bundle = from_native_bundle(args.bundle_dir)
+    out = args.out or str(Path(args.bundle_dir) / f"{bundle['candidate_id']}.candidate.json")
+    path = export_geld_bundle_v1(bundle, out)
+    print(f"wrote Geld candidate_bundle_v1 → {path}")
+    return 0
+
+
 def cmd_pipeline_run(args) -> int:
     from .pipeline import run_pipeline
 
@@ -245,6 +257,9 @@ def build_parser() -> argparse.ArgumentParser:
     rar.set_defaults(func=cmd_research_agent_run)
 
     ex = sub.add_parser("export", help="candidate-bundle commands").add_subparsers(dest="sub", required=True)
+    exg = ex.add_parser("geld-bundle", help="convert a native bundle to Geld's candidate_bundle_v1 JSON")
+    exg.add_argument("bundle_dir"); exg.add_argument("--out", default=None)
+    exg.set_defaults(func=cmd_export_geld_bundle)
     exv = ex.add_parser("verify", help="independently validate a candidate bundle")
     exv.add_argument("bundle_dir")
     exv.set_defaults(func=cmd_export_verify)

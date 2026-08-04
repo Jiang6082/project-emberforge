@@ -18,7 +18,7 @@ from pathlib import Path
 from .analytics import evaluate_factor  # noqa: F401  (kept for parity / downstream use)
 from .data import make_synthetic
 from .data.schema import MarketData
-from .export import export_candidate, validate_bundle
+from .export import export_candidate, export_geld_bundle_v1, from_native_bundle, validate_bundle
 from .generate import generate_ai, generate_templates
 from .generate.templates import TEMPLATES
 from .registry import ExperimentRegistry
@@ -119,8 +119,14 @@ def run_pipeline(
                 repo_root=repo_root,
             )
             ok = validate_bundle(bundle_dir).ok
+            # also emit the Project-Geld-submittable single-JSON bundle (v1 schema)
+            geld_path = out / "geld_bundles" / f"{r.spec.factor_id}.candidate.json"
+            export_geld_bundle_v1(from_native_bundle(bundle_dir), geld_path)
             registry.update_status(r.experiment_id, DecisionState.EXPORTED.value)
-            exported.append({"factor_id": r.spec.factor_id, "dir": str(bundle_dir), "valid": ok})
+            exported.append({
+                "factor_id": r.spec.factor_id, "dir": str(bundle_dir),
+                "valid": ok, "geld_bundle": str(geld_path),
+            })
 
     summary = {
         "family": family_name,
