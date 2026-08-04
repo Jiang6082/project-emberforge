@@ -116,6 +116,7 @@ emberforge factor walkforward  "ts_returns(close,20)" --windows 5
 emberforge generate templates
 emberforge experiment list     --registry runtime/demo/registry.sqlite3 --family momentum_family
 emberforge research-agent run  --families momentum,volatility --budget 40
+emberforge pipeline run        --families momentum,reversal,volatility   # auto: search → export → HTML report
 emberforge export verify       runtime/demo/candidate_bundle
 emberforge demo
 ```

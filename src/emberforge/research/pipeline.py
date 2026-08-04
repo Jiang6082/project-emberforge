@@ -134,15 +134,24 @@ def run_family_study(
             per_period_sr.append(rr.mean() / rr.std(ddof=1))
     sr_var = float(np.var(per_period_sr, ddof=1)) if len(per_period_sr) > 1 else None
 
-    # 4) per-candidate: DSR, bootstrap CI, dedup, decision
+    # 4) per-candidate: DSR, bootstrap CI, dedup, decision.
+    # Keep-strongest dedup: rank candidates by |mean IC| so the *best* member of a
+    # correlated cluster is kept and the weaker copies are flagged duplicates,
+    # independent of the order they were generated in.
+    def _strength(x):
+        v = x.evaluation.ic.mean_ic
+        return abs(v) if v == v else 0.0
+
+    order = sorted(range(len(results)), key=lambda j: (-_strength(results[j]), j))
+    rank = {j: pos for pos, j in enumerate(order)}
+
     survivors: list[str] = []
     for i, r in enumerate(results):
         dsr = deflated_sharpe(r.evaluation.ls_returns, n_trials=n_trials, sr_variance=sr_var)
         ci = circular_block_bootstrap(r.evaluation.ls_returns, statistic="sharpe", seed=seed)
         cpath = cpcv_path_distribution(r.evaluation.ls_returns, n_groups=6, n_test_groups=2)
-        # keep-first dedup: only compare against *earlier* candidates, so the
-        # first occurrence survives and later copies are flagged as duplicates.
-        prior = results[:i]
+        # compare only against *stronger* candidates (lower rank = higher |mean IC|)
+        prior = [results[j] for j in range(len(results)) if rank[j] < rank[i]]
         prior_scores = {x.spec.factor_id: x.scores for x in prior}
         prior_specs = [x.spec for x in prior]
         nov = novelty_report(r.spec, r.scores, prior_specs, prior_scores,

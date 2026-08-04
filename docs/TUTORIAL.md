@@ -120,6 +120,31 @@ emberforge experiment show <experiment_id> --registry runtime/agent/registry.sql
 
 ---
 
+## 5b. Or run the fully automated pipeline (no human gate)
+
+If you want *search → auto-approve → export → report* in one command, with a
+human-readable HTML dashboard written every run:
+
+```bash
+emberforge pipeline run --families momentum,reversal,volatility --out runtime/pipeline
+# --ai mock|anthropic --n-ai 3   to also request LLM candidates
+# --csv-dir path/to/csv          to run on your own data
+# --no-approve                   to write reports but NOT auto-export
+```
+
+It runs **one study per search family** (so momentum is judged against momentum,
+not against its own mirror image), keeps the **strongest** of each correlated
+cluster, and auto-exports every survivor as a bundle stamped
+`approval_state: "auto_approved"` (honest provenance — no fake human sign-off).
+Outputs land in `runtime/pipeline/`:
+
+- **`report.html`** — the nice dashboard to open in a browser (raw vs. adjusted
+  evidence, survivors highlighted),
+- `family_report.md`, `reports/<factor>.md`, `bundles/<factor>/` (validated), and
+  `summary.json`.
+
+Every exported bundle passes `emberforge export verify` on its own.
+
 ## 6. Export a survivor and verify the bundle
 
 Export requires an explicit human-approved decision (the demo does this for you).

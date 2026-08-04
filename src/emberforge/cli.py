@@ -161,6 +161,33 @@ def cmd_export_verify(args) -> int:
     return 0 if result.ok else 1
 
 
+def cmd_pipeline_run(args) -> int:
+    from .pipeline import run_pipeline
+
+    data = None
+    if getattr(args, "csv_dir", None):
+        from .data import load_csv_dir
+
+        data = load_csv_dir(args.csv_dir)
+    provider = None
+    if getattr(args, "ai", None) == "mock":
+        from .generate import MockProvider
+
+        provider = MockProvider()
+    elif getattr(args, "ai", None) == "anthropic":
+        from .generate import AnthropicProvider
+
+        provider = AnthropicProvider(model=args.ai_model)
+    families = args.families.split(",") if args.families else None
+    summary = run_pipeline(
+        out_dir=args.out, data=data, families=families, seed=args.seed,
+        ai_provider=provider, n_ai=args.n_ai, auto_approve=not args.no_approve,
+    )
+    print(json.dumps(summary, indent=2, default=str))
+    print(f"\nOpen the report:  {summary['report_html']}")
+    return 0
+
+
 def cmd_demo(args) -> int:
     from .demo import run_demo
 
@@ -221,6 +248,18 @@ def build_parser() -> argparse.ArgumentParser:
     exv = ex.add_parser("verify", help="independently validate a candidate bundle")
     exv.add_argument("bundle_dir")
     exv.set_defaults(func=cmd_export_verify)
+
+    pl = sub.add_parser("pipeline", help="automated research pipeline").add_subparsers(dest="sub", required=True)
+    plr = pl.add_parser("run", help="generate → evaluate → auto-export survivors → HTML report")
+    plr.add_argument("--out", default="runtime/pipeline")
+    plr.add_argument("--families", default=None, help="comma-separated template families")
+    plr.add_argument("--csv-dir", default=None, help="use CSV panels instead of synthetic data")
+    plr.add_argument("--seed", type=int, default=7)
+    plr.add_argument("--ai", choices=["mock", "anthropic"], default=None)
+    plr.add_argument("--ai-model", default="claude-opus-5")
+    plr.add_argument("--n-ai", dest="n_ai", type=int, default=0, help="number of AI candidates to request")
+    plr.add_argument("--no-approve", action="store_true", help="write reports but do not auto-export survivors")
+    plr.set_defaults(func=cmd_pipeline_run)
 
     dm = sub.add_parser("demo", help="run the end-to-end demonstration")
     dm.add_argument("--out", default="runtime/demo"); dm.set_defaults(func=cmd_demo)
