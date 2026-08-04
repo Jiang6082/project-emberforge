@@ -19,6 +19,12 @@ from .portfolio import (
     score_autocorr,
     turnover,
 )
+from .portfolio_backtest import (
+    PortfolioBacktest,
+    PortfolioSpec,
+    backtest_portfolio,
+    default_portfolio_spec,
+)
 
 TRADING_DAYS = 252
 
@@ -27,6 +33,7 @@ __all__ = [
     "quantile_returns", "long_short_returns", "turnover", "score_autocorr",
     "portfolio_stats", "PortfolioStats",
     "CostModel", "CapacityEstimate", "estimate_capacity", "cost_sensitivity",
+    "PortfolioSpec", "PortfolioBacktest", "backtest_portfolio", "default_portfolio_spec",
     "FactorEvaluation", "evaluate_factor",
 ]
 
@@ -43,6 +50,8 @@ class FactorEvaluation:
     ls_returns: pd.Series = field(repr=False)
     capacity_usd: float = float("nan")
     cost_sensitivity: dict = field(default_factory=dict)
+    portfolio_spec: dict = field(default_factory=dict)
+    portfolio_backtest: dict = field(default_factory=dict)
 
     def to_metrics(self) -> dict:
         """Flat, JSON-serializable metric dict for the registry and reports."""
@@ -63,6 +72,8 @@ class FactorEvaluation:
             "autocorr": self.autocorr,
             "capacity_usd": self.capacity_usd,
             "cost_sensitivity": self.cost_sensitivity,
+            "portfolio_spec": self.portfolio_spec,
+            "portfolio_backtest": self.portfolio_backtest,
             "ic_decay": self.ic_decay,
         }
 
@@ -113,6 +124,10 @@ def evaluate_factor(
     cap = estimate_capacity(gross, adv_per_name, tvr, model=cost_model, daily_vol=vol_per_name)
     cost_sens = cost_sensitivity(pstats.sharpe, gross, pstats.ann_vol, tvr)
 
+    # portfolio-construction hint + a portfolio-level (net) backtest
+    pspec = default_portfolio_spec(q)
+    pbt = backtest_portfolio(scores, fwd, spec=pspec, cost_model=cost_model)
+
     return FactorEvaluation(
         factor_id=spec.factor_id,
         expression_hash=spec.expression_hash,
@@ -124,4 +139,6 @@ def evaluate_factor(
         ls_returns=ls,
         capacity_usd=cap.capacity_usd,
         cost_sensitivity={str(k): v for k, v in cost_sens.items()},
+        portfolio_spec=pspec.to_dict(),
+        portfolio_backtest=pbt.to_dict(),
     )

@@ -95,6 +95,12 @@ def candidate_report_md(report: dict) -> str:
         "Cost sensitivity (annualized Sharpe at cost bps): "
         + ", ".join(f"{b}bps={_fmt(v,2)}" for b, v in (m.get("cost_sensitivity") or {}).items()),
         "",
+        (lambda pb, ps: (
+            f"Portfolio backtest ({ps.get('quantiles','?')}-quantile long/short, {ps.get('rebalance','?')}, "
+            f"net): Sharpe {_fmt(pb.get('sharpe'),2)}, ann.return {_fmt(pb.get('ann_return'),3)}, "
+            f"max drawdown {_fmt(pb.get('max_drawdown'),3)}, total return {_fmt(pb.get('total_return'),3)}"
+        ) if pb else "Portfolio backtest: n/a")(m.get("portfolio_backtest") or {}, m.get("portfolio_spec") or {}),
+        "",
         "IC decay by horizon: " + ", ".join(f"h{h}={_fmt(v,3)}" for h, v in m["ic_decay"].items()),
         "",
         "## Adjusted evidence (selection-bias aware)",
