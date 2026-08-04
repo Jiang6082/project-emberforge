@@ -87,6 +87,28 @@ after a successful Alpaca fetch, which needs credentials and a live run. Until
 then the smoke script skips cleanly. The adapter is verified against the schema
 regardless.
 
+## Bundle schema bridge (the two projects diverged)
+
+Geld independently built its own bundle contract, **`candidate_bundle_v1`**
+(`geld/candidates/validator.py`): a single JSON with `signal_spec`,
+`required_inputs`, `frequency ∈ {1Min,5Min,15Min,1Day}`, `lookback`, and
+`approval_status ∈ {draft,approved,rejected}`. Emberforge's *native* bundle is a
+folder with different field names, so it does **not** satisfy Geld's validator
+as-is.
+
+`emberforge.export.geld_bundle` bridges them — it maps an Emberforge candidate onto
+`candidate_bundle_v1` (daily → `1Day`, the synthesized `returns` field → `close`,
+`auto_approved` → `approved`, plus a portfolio-construction hint and an evaluation
+summary). Emberforge still **never imports Geld** — the contract is mirrored, kept
+in sync by hand. The pipeline emits `geld_bundles/<id>.candidate.json` per
+survivor, and `examples/verify_against_geld.py` cross-checks them against Geld's
+*real* validator (they pass).
+
+Note: even after Geld imports a bundle, its importer only **quarantines** it
+(research-only) — nothing is auto-enabled, and Geld's live loop still trades only
+the strategies in `config.yaml`. Turning an imported factor into live signals
+would need a factor executor on the Geld side, which does not exist yet.
+
 ## The boundary — what may cross it
 
 **One way, offline, manual only.** Emberforge → Geld communication is a

@@ -155,6 +155,7 @@ This is enforced by tests, not just convention. See
 | [COST_AND_CAPACITY.md](docs/COST_AND_CAPACITY.md) | Transaction-cost decomposition & capacity estimate |
 | [AI_RESEARCH_AGENT.md](docs/AI_RESEARCH_AGENT.md) | AI generation & the constrained agent |
 | [PROJECT_GELD_INTERFACE_NOTES.md](docs/PROJECT_GELD_INTERFACE_NOTES.md) | What Geld is; the boundary |
+| [DIVISION_OF_LABOR.md](docs/DIVISION_OF_LABOR.md) | Emberforge vs. Geld — who does what, and why |
 | [CANDIDATE_BUNDLE.md](docs/CANDIDATE_BUNDLE.md) | The offline export format |
 | [ROADMAP.md](docs/ROADMAP.md) | What's next |
 | [CHANGELOG.md](CHANGELOG.md) | Release history |
