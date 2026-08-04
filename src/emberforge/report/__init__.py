@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from .candidate import candidate_report_dict, candidate_report_md
+from .html import family_report_html
 
 
 def _fmt(x, nd=3):
@@ -47,4 +48,4 @@ def family_report_md(title: str, rows: list[dict]) -> str:
     return "\n".join(header)
 
 
-__all__ = ["candidate_report_dict", "candidate_report_md", "family_report_md"]
+__all__ = ["candidate_report_dict", "candidate_report_md", "family_report_md", "family_report_html"]
