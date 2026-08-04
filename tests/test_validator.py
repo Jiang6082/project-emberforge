@@ -58,7 +58,25 @@ def test_unapproved_manifest_fails(tmp_path):
     manifest["approval_state"] = "draft"
     (out / "manifest.json").write_text(json.dumps(manifest))
     result = validate_bundle(out)
-    assert result.checks.get("human_approved") is False
+    assert result.checks.get("approved") is False
+
+
+def test_auto_approved_bundle_validates(tmp_path):
+    from emberforge.dsl import make_factor
+    from emberforge.export import export_candidate, validate_bundle
+
+    spec = make_factor("m", "ts_returns(close, 20)", economic_hypothesis="momentum")
+    out = export_candidate(
+        spec, tmp_path / "auto",
+        evaluation_metrics={"mean_ic": 0.03}, statistics={"dsr": 0.7, "fdr_reject": True},
+        lineage=[{"factor_id": "m"}], novelty={"nearest_duplicates": []},
+        data_provenance={"dataset_fingerprint": "abc", "universe": ["A", "B"]},
+        report_md="# report", approved=True, trial_count=12, holdout_views=0,
+        approval_state="auto_approved",
+    )
+    manifest = json.loads((out / "manifest.json").read_text())
+    assert manifest["approval_state"] == "auto_approved"
+    assert validate_bundle(out).ok  # an auto-approved bundle still validates
 
 
 def test_unsupported_schema_version_fails(tmp_path):

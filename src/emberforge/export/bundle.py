@@ -16,6 +16,7 @@ from ..dsl.spec import FactorSpec
 from ..registry.gitinfo import git_provenance
 
 BUNDLE_SCHEMA_VERSION = "1.0.0"
+APPROVAL_STATES = frozenset({"human_approved", "auto_approved"})
 
 
 class ApprovalError(RuntimeError):
@@ -45,12 +46,21 @@ def export_candidate(
     holdout_views: int,
     limitations: list[str] | None = None,
     repo_root: str | Path | None = None,
+    approval_state: str = "human_approved",
 ) -> Path:
-    """Write a candidate bundle. Raises unless ``approved`` is True."""
+    """Write a candidate bundle. Raises unless ``approved`` is True.
+
+    ``approval_state`` is recorded in the manifest so the provenance is honest:
+    ``"human_approved"`` for a person's sign-off, ``"auto_approved"`` when an
+    automated pipeline promoted it on the decision gates alone. Both are accepted
+    by the validator, but the distinction is visible downstream.
+    """
     if not approved:
         raise ApprovalError(
-            "export requires an explicit human-approved decision state; refusing to export"
+            "export requires an approved decision state; refusing to export"
         )
+    if approval_state not in APPROVAL_STATES:
+        raise ApprovalError(f"unknown approval_state {approval_state!r}; expected one of {sorted(APPROVAL_STATES)}")
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
 
@@ -89,7 +99,7 @@ def export_candidate(
         "source_commit": prov["git_commit"],
         "source_dirty": prov["git_dirty"],
         "created_at": datetime.now(UTC).isoformat(),
-        "approval_state": "human_approved",
+        "approval_state": approval_state,
         "universe_assumptions": data_provenance.get("universe", "research-only"),
         "preprocessing": evaluation_metrics.get("preprocessing", "see evaluation.json"),
         "known_limitations": limitations or [

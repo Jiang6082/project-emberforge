@@ -16,7 +16,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from ..dsl import canonical, causality, parser
-from .bundle import BUNDLE_SCHEMA_VERSION, verify_bundle
+from .bundle import APPROVAL_STATES, BUNDLE_SCHEMA_VERSION, verify_bundle
 
 SUPPORTED_SCHEMA_VERSIONS = frozenset({"1.0.0"})
 
@@ -74,12 +74,12 @@ def validate_bundle(bundle_dir: str | Path) -> BundleValidation:
     else:
         checks["schema_supported"] = True
 
-    # 5) human-approval state
-    if manifest.get("approval_state") != "human_approved":
-        fail("human_approved",
-             f"approval_state is {manifest.get('approval_state')!r}, expected 'human_approved'")
+    # 5) approval state (human sign-off or automated promotion — both are valid)
+    if manifest.get("approval_state") not in APPROVAL_STATES:
+        fail("approved",
+             f"approval_state is {manifest.get('approval_state')!r}, expected one of {sorted(APPROVAL_STATES)}")
     else:
-        checks["human_approved"] = True
+        checks["approved"] = True
 
     # 6) the declarative expression must independently parse and be causal
     expression = factor.get("expression")
