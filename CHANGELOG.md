@@ -16,6 +16,11 @@ adheres to [Semantic Versioning](https://semver.org/) and the format follows
   recorded as invalid, and never evaluated or promoted. New
   `tests/test_leakage_pipeline.py` registers exactly such a leaky operator and
   proves the pipeline rejects it (and that disabling the check lets it through).
+- **Trial-count penalty is verified end to end** (`tests/test_trial_penalty_pipeline.py`):
+  the same factor on the same data scores a strictly lower Deflated Sharpe when the
+  family already logged 1,500 trials than when it logged none — proving
+  `registry.family_trial_count` really flows into the significance bar in the live
+  pipeline, not just in the DSR unit test. Fails if the wiring is ever bypassed.
 - **Geld bundle lost the dataset fingerprint.** `export.from_native_bundle` read
   the v1 `data_fingerprint` from `manifest.expression_hash` (the *factor* hash),
   never opening `data_provenance.json` — so the field duplicated `code_hash` and
