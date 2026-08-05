@@ -49,11 +49,17 @@ def to_geld_bundle_v1(
     approval_state: str = "auto_approved",
     name: str | None = None,
     source_commit: str | None = None,
+    created_at: str | None = None,
 ) -> dict:
     """Build a ``candidate_bundle_v1`` dict from Emberforge's factor + evidence.
 
     ``factor`` is Emberforge's ``factor.json`` payload; ``metrics`` / ``statistics``
     come from the evaluation. Returns a plain dict ready to write as JSON.
+
+    ``created_at`` may be supplied to make the conversion a *pure* function of its
+    inputs (so the exported v1 JSON is byte-reproducible and its checksum is
+    stable). When omitted it falls back to the current UTC time, preserving the
+    old behaviour for direct callers.
     """
     freq = _FREQ_MAP.get(factor.get("intended_frequency", "daily"), "1Day")
     pb = metrics.get("portfolio_backtest") or {}
@@ -72,7 +78,7 @@ def to_geld_bundle_v1(
         "frequency": freq,
         "lookback": max(1, int(factor.get("max_lookback", 1) or 1)),
         "approval_status": _APPROVAL_MAP.get(approval_state, "draft"),
-        "created_at": datetime.now(UTC).isoformat(),
+        "created_at": created_at or datetime.now(UTC).isoformat(),
         "universe_assumptions": data_provenance.get("universe", "research-only"),
         "preprocessing": {"winsorize": True, "cross_sectional_zscore": True},
         "portfolio_construction": metrics.get("portfolio_spec") or {},
@@ -107,6 +113,12 @@ def from_native_bundle(bundle_dir: str | Path, approval_state: str = "auto_appro
     factor = json.loads((d / "factor.json").read_text(encoding="utf-8"))
     evaluation = json.loads((d / "evaluation.json").read_text(encoding="utf-8"))
     manifest = json.loads((d / "manifest.json").read_text(encoding="utf-8"))
+    # data_provenance.json carries the *dataset* fingerprint (what data the factor
+    # was measured on) — distinct from the factor's expression hash. Read it so the
+    # v1 bundle's data_fingerprint truly traces the Geld run back to the exact
+    # Emberforge dataset. Fall back gracefully if the file is absent.
+    dp_path = d / "data_provenance.json"
+    data_prov = json.loads(dp_path.read_text(encoding="utf-8")) if dp_path.exists() else {}
     hypothesis = (d / "hypothesis.md").read_text(encoding="utf-8") if (d / "hypothesis.md").exists() else ""
     # strip the leading "# title" line from hypothesis.md
     hyp = "\n".join(ln for ln in hypothesis.splitlines() if not ln.startswith("#")).strip()
@@ -117,11 +129,16 @@ def from_native_bundle(bundle_dir: str | Path, approval_state: str = "auto_appro
         statistics=statistics,
         hypothesis=hyp,
         data_provenance={
-            "universe": manifest.get("universe_assumptions", "research-only"),
-            "dataset_fingerprint": manifest.get("expression_hash", ""),
+            "universe": data_prov.get("universe", manifest.get("universe_assumptions", "research-only")),
+            "dataset_fingerprint": data_prov.get("dataset_fingerprint", ""),
         },
         approval_state=manifest.get("approval_state", approval_state),
         source_commit=manifest.get("source_commit"),
+        # Trace the v1 timestamp back to when the native bundle was created,
+        # rather than when this format conversion happened to run. This makes
+        # from_native_bundle a pure function of the bundle on disk — same bundle
+        # in, byte-identical v1 JSON out — so its checksum is reproducible.
+        created_at=manifest.get("created_at"),
     )
 
 

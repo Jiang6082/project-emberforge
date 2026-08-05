@@ -7,6 +7,17 @@ adheres to [Semantic Versioning](https://semver.org/) and the format follows
 ## [Unreleased]
 
 ### Fixed
+- **Geld bundle lost the dataset fingerprint.** `export.from_native_bundle` read
+  the v1 `data_fingerprint` from `manifest.expression_hash` (the *factor* hash),
+  never opening `data_provenance.json` — so the field duplicated `code_hash` and
+  the real dataset fingerprint was dropped. It now reads `data_provenance.json`,
+  so `data_fingerprint` (which data) and `code_hash` (which factor) are distinct
+  and a Geld paper run traces back to the exact Emberforge dataset.
+- **Non-deterministic v1 export.** `to_geld_bundle_v1` stamped `created_at` with
+  the wall clock, so converting the same native bundle twice produced different
+  bytes. `created_at` is now injectable and `from_native_bundle` carries the
+  native bundle's own timestamp through — the conversion is a pure function of the
+  bundle on disk, so its checksum is reproducible.
 - **Cross-platform bundle reproducibility.** All text file I/O now pins
   `encoding="utf-8"` explicitly. Reports, the demo/pipeline outputs, and — most
   importantly — the candidate-bundle *readers* (`export.validate_bundle`,
@@ -23,6 +34,11 @@ adheres to [Semantic Versioning](https://semver.org/) and the format follows
   the whole pipeline under `-X warn_default_encoding` and fails if *any*
   `emberforge.*` text I/O omits an explicit encoding — caught on every platform,
   including UTF-8-default CI.
+- **`candidate_bundle_v1` contract tests** (`tests/test_geld_contract.py`): the
+  conversion is deterministic (byte-identical output for the same native bundle),
+  the v1 field surface is frozen (any add/remove/rename fails loudly, forcing an
+  explicit Geld-side sync), and the dataset fingerprint / code hash / trial count
+  provably carry through.
 
 ### Changed
 - **CI now runs on Windows too** (`ci.github-workflow.yml`): the test matrix adds
