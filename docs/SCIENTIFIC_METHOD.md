@@ -15,7 +15,10 @@ Defences:
 * **Static:** negative/zero windows and "future" operators are rejected at
   validation (`dsl/causality.py`).
 * **Dynamic:** `compute.assert_no_lookahead` perturbs future bars and asserts
-  that no pre-cut value changes.
+  that no pre-cut value changes. This runs on **every** candidate inside
+  `run_family_study` (not just in tests), so a look-ahead baked into an operator's
+  *implementation* — which the static tree check cannot see — is caught: the
+  factor is recorded as invalid and never evaluated or promoted.
 * **Structural:** the forward-return *label* is computed by the analytics layer
   and is never a field the DSL can reference.
 

@@ -7,6 +7,15 @@ adheres to [Semantic Versioning](https://semver.org/) and the format follows
 ## [Unreleased]
 
 ### Fixed
+- **Dynamic leakage detection is now actually enforced.** `assert_no_lookahead`
+  (future-perturbation) existed but was only exercised in unit tests — the
+  research pipeline ran static causality alone. `run_family_study` now runs the
+  perturbation check on every candidate (toggle: `dynamic_leakage_check`, default
+  on), so a look-ahead baked into an operator's *implementation* — invisible to
+  the static tree check because there's no window literal to inspect — is caught,
+  recorded as invalid, and never evaluated or promoted. New
+  `tests/test_leakage_pipeline.py` registers exactly such a leaky operator and
+  proves the pipeline rejects it (and that disabling the check lets it through).
 - **Geld bundle lost the dataset fingerprint.** `export.from_native_bundle` read
   the v1 `data_fingerprint` from `manifest.expression_hash` (the *factor* hash),
   never opening `data_provenance.json` — so the field duplicated `code_hash` and

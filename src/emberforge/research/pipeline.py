@@ -14,7 +14,7 @@ import numpy as np
 import pandas as pd
 
 from ..analytics import FactorEvaluation, evaluate_factor
-from ..compute import PreprocessConfig, compute_factor
+from ..compute import PreprocessConfig, assert_no_lookahead, compute_factor
 from ..data.schema import MarketData
 from ..dedup import novelty_report
 from ..dsl.spec import FactorSpec
@@ -65,6 +65,7 @@ def run_family_study(
     criteria: PromotionCriteria = PromotionCriteria(),
     seed: int = 0,
     universe=None,
+    dynamic_leakage_check: bool = True,
 ) -> FamilyStudy:
     from ..report import candidate_report_dict  # local import avoids report<->research cycle
 
@@ -76,6 +77,13 @@ def run_family_study(
     for spec in specs:
         try:
             scores = compute_factor(spec, data, preprocess, eligibility=eligibility)
+            # Dynamic leakage backstop: static causality checks can't catch a
+            # look-ahead baked into an operator's *implementation* (e.g. a future
+            # shift with no window literal to inspect). Perturb the future and
+            # confirm past factor values don't move. Runs on every candidate so a
+            # leaky factor is recorded as invalid, never evaluated or promoted.
+            if dynamic_leakage_check:
+                assert_no_lookahead(spec, data, seed=seed)
             evaluation = evaluate_factor(spec, data, horizon=horizon, preprocess=preprocess, universe=universe)
             status = "evaluated"
             failure = None
