@@ -21,6 +21,12 @@ TEMPLATES = {
                      "Abnormal {w}-bar volume precedes mean reversion."),
     "price_trend": ("divide(close,ts_mean(close,{w}))", 1, "trend",
                     "Price above its {w}-bar average signals an uptrend."),
+    "skewness": ("neg(ts_skew(ts_returns(close,1),{w}))", 1, "skewness",
+                 "High positive {w}-bar return skew (lottery-like) underperforms."),
+    "mean_reversion": ("neg(ts_zscore(close,{w}))", 1, "reversal",
+                       "Price reverts toward its trailing {w}-bar mean."),
+    "high_proximity": ("neg(ts_argmax(close,{w}))", 1, "trend",
+                       "Proximity to the {w}-bar high predicts continuation."),
 }
 
 

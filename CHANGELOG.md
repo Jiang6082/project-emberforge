@@ -6,6 +6,16 @@ adheres to [Semantic Versioning](https://semver.org/) and the format follows
 
 ## [Unreleased]
 
+### Added
+- **Five new causal time-series operators** (`dsl/operators.py`): `ts_sum`,
+  `ts_skew` (rolling skewness), `ts_zscore` (trailing-window z-score), and
+  `ts_argmax`/`ts_argmin` (bars since the window high/low, 0 = now). All use
+  trailing windows only and pass the perturbation leakage detector.
+- **Three new factor families** (`generate/templates.py`): `skewness` (lottery /
+  skew premium), `mean_reversion` (price z-score reversion), and `high_proximity`
+  (proximity to the recent high). The semantic classifier gains a `skewness`
+  economic family and rules so the new signals dedup correctly.
+
 ### Fixed
 - **Dynamic leakage detection is now actually enforced.** `assert_no_lookahead`
   (future-perturbation) existed but was only exercised in unit tests — the

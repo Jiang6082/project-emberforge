@@ -12,7 +12,8 @@ from ..dsl.spec import FactorSpec
 
 FAMILIES = (
     "momentum", "reversal", "volatility", "liquidity", "volume", "trend",
-    "quality", "value", "size", "seasonality", "interaction", "regime", "unknown",
+    "quality", "value", "size", "seasonality", "interaction", "regime",
+    "skewness", "unknown",
 )
 
 
@@ -36,6 +37,16 @@ def classify(spec: FactorSpec) -> str:
 
     if "volume" in fields and {"ts_mean", "cs_rank", "divide"} & ops:
         return "liquidity" if "close" in fields else "volume"
+    # Rolling skewness is a distinct economic family (lottery / skew premium) — must
+    # precede the momentum rule, since a skew of returns also contains ts_returns.
+    if "ts_skew" in ops:
+        return "skewness"
+    # Trailing-window z-score of price and "bars since high/low" are mean-reversion
+    # and trend signals respectively — classify before the generic returns rules.
+    if "ts_zscore" in ops and "close" in fields:
+        return "reversal"
+    if {"ts_argmax", "ts_argmin"} & ops:
+        return "trend"
     if {"ts_std", "ts_downside_std"} & ops:
         return "volatility"
     if _short_return_negated():

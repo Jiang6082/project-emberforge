@@ -26,8 +26,10 @@ Binary operators desugar to calls: `a + b → add(a, b)`, `-a → neg(a)`.
 
 ### Time-series (trailing windows, causal)
 `ts_delay, ts_delta, ts_returns, ts_mean, ts_std, ts_min, ts_max, ts_rank,
-ts_ewm, ts_corr, ts_cov, ts_downside_std`. The integer window/lag argument must
-be a **positive integer literal** — negative or zero is rejected as look-ahead.
+ts_ewm, ts_corr, ts_cov, ts_downside_std, ts_sum, ts_skew, ts_zscore, ts_argmax,
+ts_argmin`. The integer window/lag argument must be a **positive integer literal**
+— negative or zero is rejected as look-ahead. (`ts_zscore` is the trailing-window
+z-score; `ts_argmax`/`ts_argmin` are *bars since* the window extremum, 0 = now.)
 
 ### Cross-sectional (within one timestamp)
 `cs_rank, cs_percentile, cs_zscore, cs_demean, cs_neutralize, cs_winsor`.
