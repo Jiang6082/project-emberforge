@@ -21,6 +21,12 @@ adheres to [Semantic Versioning](https://semver.org/) and the format follows
   family already logged 1,500 trials than when it logged none — proving
   `registry.family_trial_count` really flows into the significance bar in the live
   pipeline, not just in the DSR unit test. Fails if the wiring is ever bypassed.
+- **BH/Holm cross-checked against statsmodels** (`tests/test_multiple_testing_reference.py`):
+  the hand-rolled Benjamini-Hochberg and Holm corrections match statsmodels'
+  `multipletests` to floating-point tolerance — adjusted p-values and reject
+  decisions alike — across 120 random p-value vectors (including ties and exact
+  0/1 endpoints), so a subtle off-by-one in a rank multiplier can't silently lower
+  the significance bar.
 - **Geld bundle lost the dataset fingerprint.** `export.from_native_bundle` read
   the v1 `data_fingerprint` from `manifest.expression_hash` (the *factor* hash),
   never opening `data_provenance.json` — so the field duplicated `code_hash` and
