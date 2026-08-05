@@ -104,10 +104,10 @@ def to_geld_bundle_v1(
 def from_native_bundle(bundle_dir: str | Path, approval_state: str = "auto_approved") -> dict:
     """Convert an already-exported Emberforge native bundle folder to v1 JSON."""
     d = Path(bundle_dir)
-    factor = json.loads((d / "factor.json").read_text())
-    evaluation = json.loads((d / "evaluation.json").read_text())
-    manifest = json.loads((d / "manifest.json").read_text())
-    hypothesis = (d / "hypothesis.md").read_text() if (d / "hypothesis.md").exists() else ""
+    factor = json.loads((d / "factor.json").read_text(encoding="utf-8"))
+    evaluation = json.loads((d / "evaluation.json").read_text(encoding="utf-8"))
+    manifest = json.loads((d / "manifest.json").read_text(encoding="utf-8"))
+    hypothesis = (d / "hypothesis.md").read_text(encoding="utf-8") if (d / "hypothesis.md").exists() else ""
     # strip the leading "# title" line from hypothesis.md
     hyp = "\n".join(ln for ln in hypothesis.splitlines() if not ln.startswith("#")).strip()
     statistics = {**evaluation.get("statistics", {}), "trial_count": evaluation.get("trial_count")}

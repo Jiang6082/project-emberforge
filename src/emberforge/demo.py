@@ -63,11 +63,11 @@ def run_demo(out_dir: str | Path = "runtime/demo") -> dict:
     reports_dir = out / "reports"
     reports_dir.mkdir(exist_ok=True)
     for r in study.results:
-        (reports_dir / f"{r.spec.factor_id}.md").write_text(candidate_report_md(r.report))
-        (reports_dir / f"{r.spec.factor_id}.json").write_text(json.dumps(r.report, indent=2, default=str))
+        (reports_dir / f"{r.spec.factor_id}.md").write_text(candidate_report_md(r.report), encoding="utf-8")
+        (reports_dir / f"{r.spec.factor_id}.json").write_text(json.dumps(r.report, indent=2, default=str), encoding="utf-8")
 
     # aggregate family report
-    (out / "family_report.md").write_text(family_report_md("momentum_family", study.report_rows()))
+    (out / "family_report.md").write_text(family_report_md("momentum_family", study.report_rows()), encoding="utf-8")
 
     # export ONE survivor as a human-approved bundle (human approval simulated here)
     exported = None
@@ -108,7 +108,7 @@ def run_demo(out_dir: str | Path = "runtime/demo") -> dict:
         "exported": exported,
         "out_dir": str(out),
     }
-    (out / "summary.json").write_text(json.dumps(summary, indent=2, default=str))
+    (out / "summary.json").write_text(json.dumps(summary, indent=2, default=str), encoding="utf-8")
     return summary
 
 

@@ -4,6 +4,31 @@ All notable changes to Project Emberforge are documented here. This project
 adheres to [Semantic Versioning](https://semver.org/) and the format follows
 [Keep a Changelog](https://keepachangelog.com/).
 
+## [Unreleased]
+
+### Fixed
+- **Cross-platform bundle reproducibility.** All text file I/O now pins
+  `encoding="utf-8"` explicitly. Reports, the demo/pipeline outputs, and — most
+  importantly — the candidate-bundle *readers* (`export.validate_bundle`,
+  `export.from_native_bundle`, `export.verify_bundle`) previously relied on the
+  platform default encoding, so a bundle whose `hypothesis.md`/`report.md`
+  contained non-ASCII (`→`, `×`, `—`) hashed differently — or failed to
+  read/write — on a Windows (cp1252) machine than on a UTF-8 Linux one. This
+  threatened the SHA-256 checksum contract that the offline Geld hand-off relies
+  on. Fixes six tests that failed under a non-UTF-8 default locale.
+
+### Added
+- **Encoding regression guard** (`tests/test_encoding.py`): a non-ASCII bundle
+  round-trips byte-for-byte and still validates, plus a subprocess check that runs
+  the whole pipeline under `-X warn_default_encoding` and fails if *any*
+  `emberforge.*` text I/O omits an explicit encoding — caught on every platform,
+  including UTF-8-default CI.
+
+### Changed
+- **CI now runs on Windows too** (`ci.github-workflow.yml`): the test matrix adds
+  `windows-latest` alongside `ubuntu-latest`, so the cross-platform encoding
+  guarantee is exercised on the platform where it originally broke.
+
 ## [0.1.0] — 2026-08-02
 
 First tagged release. An AI-assisted factor-research platform with

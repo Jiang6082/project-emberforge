@@ -44,7 +44,7 @@ def main() -> int:
 
     all_ok = True
     for f in files:
-        bundle = json.loads(f.read_text())
+        bundle = json.loads(f.read_text(encoding="utf-8"))
         result = validator.validate_bundle(bundle)
         status = "OK  " if result.ok else "FAIL"
         print(f"[{status}] {f.name}  (candidate_id={result.candidate_id})")

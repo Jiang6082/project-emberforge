@@ -130,7 +130,7 @@ def export_candidate(
 def verify_bundle(bundle_dir: str | Path) -> tuple[bool, list[str]]:
     """Recompute checksums and confirm bundle integrity."""
     out = Path(bundle_dir)
-    checks = (out / "checksums.txt").read_text().strip().splitlines()
+    checks = (out / "checksums.txt").read_text(encoding="utf-8").strip().splitlines()
     problems = []
     recorded = {}
     for line in checks:

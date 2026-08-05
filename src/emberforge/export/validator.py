@@ -58,8 +58,8 @@ def validate_bundle(bundle_dir: str | Path) -> BundleValidation:
 
     # 3) load JSON payloads
     try:
-        factor = json.loads((out / "factor.json").read_text())
-        manifest = json.loads((out / "manifest.json").read_text())
+        factor = json.loads((out / "factor.json").read_text(encoding="utf-8"))
+        manifest = json.loads((out / "manifest.json").read_text(encoding="utf-8"))
     except json.JSONDecodeError as e:
         fail("json_parses", f"bundle JSON is invalid: {e}")
         return BundleValidation(False, checks, problems)

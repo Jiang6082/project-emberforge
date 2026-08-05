@@ -79,17 +79,17 @@ def run_pipeline(
 
     # per-candidate reports (human + machine)
     for r in results:
-        (out / "reports" / f"{r.spec.factor_id}.md").write_text(candidate_report_md(r.report))
-        (out / "reports" / f"{r.spec.factor_id}.json").write_text(json.dumps(r.report, indent=2, default=str))
+        (out / "reports" / f"{r.spec.factor_id}.md").write_text(candidate_report_md(r.report), encoding="utf-8")
+        (out / "reports" / f"{r.spec.factor_id}.json").write_text(json.dumps(r.report, indent=2, default=str), encoding="utf-8")
 
     # aggregate dashboards — Markdown and the nice HTML — across all families
     rows = [r.report for r in results]
     trial_count = len(results)
-    (out / "family_report.md").write_text(family_report_md(family_name, rows))
+    (out / "family_report.md").write_text(family_report_md(family_name, rows), encoding="utf-8")
     (out / "report.html").write_text(family_report_html(
         family_name, rows,
         meta={"trial_count": trial_count, "data": f"{len(data.symbols)} symbols × {len(data.index)} bars"},
-    ))
+    ), encoding="utf-8")
 
     # auto-approve + export every survivor
     exported = []
@@ -139,7 +139,7 @@ def run_pipeline(
         "family_report_md": str(out / "family_report.md"),
         "out_dir": str(out),
     }
-    (out / "summary.json").write_text(json.dumps(summary, indent=2, default=str))
+    (out / "summary.json").write_text(json.dumps(summary, indent=2, default=str), encoding="utf-8")
     return summary
 
 
