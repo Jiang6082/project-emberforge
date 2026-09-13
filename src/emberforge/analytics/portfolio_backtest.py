@@ -19,7 +19,7 @@ import numpy as np
 import pandas as pd
 
 from .costs import CostModel
-from .portfolio import long_short_returns, turnover
+from .portfolio import quantile_buckets
 
 TRADING_DAYS = 252
 
@@ -36,6 +36,17 @@ class PortfolioSpec:
     rebalance: str = "daily"
     neutralize: bool = False
     gross_exposure: float = 1.0
+
+    def __post_init__(self):
+        if isinstance(self.quantiles, bool) or not isinstance(self.quantiles, int) or self.quantiles < 2:
+            raise ValueError("quantiles must be an integer >= 2")
+        if not np.isfinite(self.gross_exposure) or self.gross_exposure <= 0:
+            raise ValueError("gross_exposure must be positive and finite")
+        if (self.kind != "cross_sectional_quantile" or self.weighting != "equal"
+                or self.rebalance != "daily" or self.neutralize):
+            raise ValueError("only daily equal-weight quantiles without extra neutralization are supported")
+        if {self.long_quantile, self.short_quantile} != {"top", "bottom"}:
+            raise ValueError("long and short quantiles must be opposite tails")
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -74,30 +85,45 @@ def backtest_portfolio(
     max drawdown, turnover, hit rate, cumulative return).
     """
     spec = spec or default_portfolio_spec()
-    ls = long_short_returns(scores, fwd_returns, spec.quantiles)
-    tvr = turnover(scores, spec.quantiles)
-    tvr_eff = tvr if tvr == tvr else 0.0
+    buckets = quantile_buckets(scores, spec.quantiles)
+    top, bottom = buckets.eq(spec.quantiles - 1), buckets.eq(0)
+    long_mask, short_mask = (top, bottom) if spec.long_quantile == "top" else (bottom, top)
+    longs = long_mask.div(long_mask.sum(axis=1).replace(0, np.nan), axis=0).fillna(0.0)
+    shorts = short_mask.div(short_mask.sum(axis=1).replace(0, np.nan), axis=0).fillna(0.0)
+    weights = (longs - shorts) * spec.gross_exposure / 2.0
+    aligned_returns = fwd_returns.reindex_like(weights)
+    valid = weights.ne(0).any(axis=1) & ~(weights.ne(0) & aligned_returns.isna()).any(axis=1)
+    # Target-weight turnover includes both legs and initial entry, at each date.
+    previous = weights.shift(1, fill_value=0.0)
+    traded = (weights - previous).abs().sum(axis=1)
+    ls = (weights * aligned_returns).sum(axis=1).where(valid)
+    tvr_eff = float(traded[valid].mean()) if valid.any() else 0.0
     if cost_model is not None:
-        cost = cost_model.per_period_cost(tvr_eff, participation=0.0)
+        linear_bps = cost_model.commission_bps + cost_model.half_spread_bps
+        borrow = cost_model.borrow_bps_annual / 1e4 / TRADING_DAYS if cost_model.has_short_leg else 0.0
+        cost = traded * linear_bps / 1e4 + shorts.sum(axis=1) * spec.gross_exposure / 2 * borrow
+        effective_cost_bps = linear_bps
     else:
-        cost = (cost_bps / 1e4) * tvr_eff
+        cost = (cost_bps / 1e4) * traded
+        effective_cost_bps = cost_bps
     net = (ls - cost).dropna()
-    if len(net) < 2 or net.std(ddof=1) == 0:
+    if len(net) == 0:
         return PortfolioBacktest(len(net), float("nan"), float("nan"), float("nan"),
                                  float("nan"), tvr_eff, float("nan"), float("nan"), cost_bps)
     equity = (1.0 + net).cumprod()
-    drawdown = float((equity / equity.cummax() - 1.0).min())
-    sharpe = float(net.mean() / net.std(ddof=1) * np.sqrt(TRADING_DAYS))
+    drawdown = float((equity / equity.cummax().clip(lower=1.0) - 1.0).min())
+    std = float(net.std(ddof=1)) if len(net) > 1 else 0.0
+    sharpe = float(net.mean() / std * np.sqrt(TRADING_DAYS)) if std > 0 else 0.0
     return PortfolioBacktest(
         n_periods=int(len(net)),
         ann_return=float(net.mean() * TRADING_DAYS),
-        ann_vol=float(net.std(ddof=1) * np.sqrt(TRADING_DAYS)),
+        ann_vol=float(std * np.sqrt(TRADING_DAYS)),
         sharpe=sharpe,
         max_drawdown=drawdown,
         turnover=float(tvr_eff),
         hit_rate=float((net > 0).mean()),
         total_return=float(equity.iloc[-1] - 1.0),
-        cost_bps=float(cost_bps),
+        cost_bps=float(effective_cost_bps),
     )
 
 

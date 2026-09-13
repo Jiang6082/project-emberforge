@@ -1,5 +1,9 @@
 # Roadmap
 
+The [September 2026 review](AUDIT_2026-09-13.md) supersedes historical completion
+claims below where they conflict. Existing research tools are not evidence of
+out-of-sample profitability or production readiness.
+
 ## Phase A — MVP (done)
 
 Synthetic data · factor DSL · causal computation · analytics · experiment
@@ -28,9 +32,6 @@ Acceptance criteria are met — see
 
 Still open in this track:
 
-* **Real LLM provider** behind the existing `LLMProvider` protocol (the interface
-  and a mock exist; a networked implementation is intentionally omitted from the
-  offline core).
 * **Cross-feed stability** (needs a second data feed).
 
 ## Phase C — statistical depth & real LLM (implemented)
@@ -65,9 +66,8 @@ Still open in this track:
   fraction positive), shown per candidate.
 * ✅ **Repo hygiene** — `LICENSE` (MIT) and a `py.typed` marker so the typed
   package ships its types. A GitHub Actions CI workflow (`pytest` on 3.11/3.12 +
-  boundary check) is prepared at `.github/workflows/ci.yml`; it needs a token with
-  the `workflow` scope to push (`gh auth refresh -s workflow`, then
-  `git add -f .github/workflows/ci.yml`).
+  boundary check) now lives at `.github/workflows/ci.yml`, with lint and package
+  builds; `.github/` is no longer ignored.
 
 ## Hardening (implemented)
 
@@ -91,8 +91,9 @@ Still open in this track:
 ## Phase D — interoperability
 
 * A richer intraday data path (Emberforge is daily-first today).
-* An optional, human-run Geld-side validator that consumes the candidate bundle
-  schema (built in Geld, not from here).
+* The Geld-side validator, independent factor evaluator, OOS revalidation and
+  shadow state machine are implemented in Geld. Their existence does not make
+  an automatically exported candidate ready for paper execution.
 * Signed, reviewed factor plugins if a non-declarative execution path is ever
   justified.
 

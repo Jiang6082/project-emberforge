@@ -1,6 +1,10 @@
 # Project Emberforge
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![CI](https://github.com/Jiang6082/project-emberforge/actions/workflows/ci.yml/badge.svg)](https://github.com/Jiang6082/project-emberforge/actions/workflows/ci.yml)
+
+The [September 2026 review](docs/AUDIT_2026-09-13.md) documents corrected evidence,
+data and portfolio-accounting bugs, verification, and remaining research work.
 
 **A Python factor-research system with a constrained expression language, an SQLite experiment registry, and checksummed candidate exports.**
 
@@ -84,6 +88,9 @@ The demo plants a known momentum effect in synthetic data, then evaluates the co
 
 The [September 13, 2026 demo snapshot](docs/DEMO_SNAPSHOT.md) recorded **36 candidates: one survivor (`momentum_20`), 24 duplicates, and 11 rejected candidates**, with bundle checksums verified. These are synthetic-demo outcomes, not evidence of market alpha. Approval is preconfigured in the demo code; in a research workflow, a person must review the candidate before approving an export.
 
+That snapshot predates the integrity/accounting corrections in the linked audit.
+Run this checkout for current results; preserve the snapshot as historical evidence.
+
 Output lands in `runtime/demo/`:
 
 ```
@@ -117,11 +124,19 @@ emberforge generate templates
 emberforge experiment list     --registry runtime/demo/registry.sqlite3 --family momentum_family
 emberforge research-agent run  --families momentum,volatility --budget 40
 emberforge pipeline run        --families momentum,reversal,volatility   # auto: search → export → HTML report
+emberforge data validate       --geld-csv /path/to/geld/selected-bars.csv.gz
 emberforge export verify       runtime/demo/candidate_bundle
 emberforge demo
 ```
 
 A negative or zero look-back is rejected as look-ahead before it can ever run.
+
+The automatic pipeline reserves the final 20% of supplied timestamps before
+factor generation/evaluation. Its reports and automatic exports describe
+development evidence only; the locked test is not evaluated. Automated exports
+are labeled `auto_approved`, which is distinct from a person's sign-off, and
+Geld still requires its own checks. Use `--no-approve` to produce reports only.
+The native export API also supports explicit `human_approved` bundles.
 
 ---
 
@@ -192,7 +207,8 @@ fuzzing (Hypothesis).
 
 Run `pytest` for the current suite, or `pytest -m "not slow"` for the core checks. Counts and timings depend on the checkout and environment.
 
-**CI status:** the repository currently contains a workflow template at `ci.github-workflow.yml`, outside `.github/workflows/`. It is not an active GitHub Actions workflow. The local test commands above remain the verification entry point. See [ROADMAP.md](docs/ROADMAP.md).
+CI runs the complete offline suite and builds the distribution on Linux and
+Windows with Python 3.11 and 3.12. See [ROADMAP.md](docs/ROADMAP.md) for limitations.
 
 ## Disclaimer
 

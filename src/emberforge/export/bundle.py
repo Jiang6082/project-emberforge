@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -130,18 +131,38 @@ def export_candidate(
 def verify_bundle(bundle_dir: str | Path) -> tuple[bool, list[str]]:
     """Recompute checksums and confirm bundle integrity."""
     out = Path(bundle_dir)
-    checks = (out / "checksums.txt").read_text(encoding="utf-8").strip().splitlines()
     problems = []
     recorded = {}
+    try:
+        checks = (out / "checksums.txt").read_text(encoding="utf-8").strip().splitlines()
+        files = list(out.iterdir())
+    except (OSError, UnicodeError) as exc:
+        return False, [f"cannot read bundle: {exc}"]
     for line in checks:
-        digest, name = line.split("  ", 1)
+        parts = line.split("  ", 1)
+        if len(parts) != 2 or not re.fullmatch(r"[0-9a-f]{64}", parts[0]):
+            problems.append("malformed checksum entry")
+            continue
+        digest, name = parts
+        if name in recorded or not name or "/" in name or "\\" in name or name in {".", "..", "checksums.txt"}:
+            problems.append(f"invalid or duplicate checksum filename: {name!r}")
+            continue
         recorded[name] = digest
-    for p in out.iterdir():
+    if not recorded:
+        problems.append("checksum manifest is empty")
+    for p in files:
+        if p.is_symlink() or not p.is_file():
+            problems.append(f"bundle member must be a regular file: {p.name}")
+            continue
         if p.name == "checksums.txt":
             continue
-        actual = _sha256(p.read_bytes())
+        try:
+            actual = _sha256(p.read_bytes())
+        except OSError as exc:
+            problems.append(f"cannot read {p.name}: {exc}")
+            continue
         if recorded.get(p.name) != actual:
             problems.append(f"checksum mismatch: {p.name}")
-    missing = set(recorded) - {p.name for p in out.iterdir()}
+    missing = set(recorded) - {p.name for p in files}
     problems += [f"missing file: {m}" for m in missing]
     return (not problems), problems

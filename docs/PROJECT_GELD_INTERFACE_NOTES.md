@@ -1,123 +1,60 @@
-# Project Geld — Interface Notes (read-only inspection)
+# Current Project Geld interface
 
-These notes document what Project Geld **actually is**, based on a read-only
-inspection of the local repository. Emberforge never modifies Geld, never touches
-its accounts, and never writes into its tree.
+Verified against Geld `bece5c4` and the paired September 2026 integrity changes.
 
-## What Geld is
+Emberforge generates/evaluates declarative research factors. Geld is a separate
+Python research, backtest and paper-execution engine under `project_geld`, with
+its own cache, configuration, candidate evaluator, OOS gates, state machine,
+run manifests and paper controls. Older notes claiming these are absent are
+obsolete.
 
-Geld is a small, beginner-readable **5-minute intraday Alpaca paper-trading bot**.
-It is *not* a mature quant-data platform. Assuming it has rich data infrastructure
-would lead to fabricated conventions, so this document is deliberately explicit
-about what exists and what does not.
+There is no automatic live link. Emberforge has no broker client and never
+changes Geld's repository, credentials, configuration or accounts. A user
+explicitly exports/copies a candidate file and invokes Geld's own commands.
 
-## What actually exists
+## Read current Geld data
 
-### Market data
-A single dataclass `Bar` (`geld/storage/models.py`):
+Current Geld historical outputs use long-form CSV/CSV.gz with `timestamp,
+symbol, open, high, low, close, volume` and optional `vwap`:
 
-| field | type |
-|---|---|
-| symbol | str |
-| timestamp | tz-aware UTC datetime |
-| open, high, low, close | float |
-| volume | float |
-| timeframe | str (default `"5Min"`) |
+```python
+from emberforge.data import load_geld_csv
 
-Bars are fetched live from Alpaca and cached in a SQLite table `market_bars`
-(`geld/storage/database.py`) keyed by `(symbol, timeframe, timestamp)`.
-Timestamps are stored as ISO-8601 strings.
-
-### Strategy output ("target format")
-A `Signal` dataclass: `strategy_name, symbol, direction ∈ {BUY, SELL, HOLD, EXIT},
-confidence ∈ [0, 1], reason, timestamp`. That is the entirety of a strategy's
-output. There is nothing resembling a cross-sectional factor score.
-
-### Universe
-A **static hardcoded list** in `config.yaml`: `SPY, QQQ, NVDA, AAPL, TSLA`.
-
-### Persistence
-SQLite tables: `market_bars, strategy_signals, orders, fills, positions,
-equity_curve, events`.
-
-### Timestamp / timezone conventions
-UTC throughout; tz-aware datetimes in code, ISO strings in SQLite.
-
-## What does NOT exist in Geld (Emberforge introduces these)
-
-Marked absent so nothing is invented:
-
-| Concept | Status in Geld | Emberforge approach |
-|---|---|---|
-| Feed / adjustment metadata | **absent** | `DatasetMetadata.feed`, `.adjustment` |
-| Dataset version / source | **absent** | `DatasetMetadata.version`, `.source` |
-| Data fingerprint | **absent** | SHA-256 panel fingerprint |
-| Point-in-time universe | **absent** (static list) | first-class PIT universe (Phase B) |
-| Survivorship handling | **absent** | universe variants (Phase B) |
-| Artifact / manifest system | **absent** | candidate bundle + manifest |
-| Candidate validator | **absent** | bundle schema is *designed* to be validated later |
-
-Directories the original brief warned against writing to — of `state/`,
-`artifact/`, `universe/`, `paper/` — only `data/` exists. Emberforge writes to
-none of them regardless.
-
-## Frequency note
-
-Geld is **5-minute intraday**. Emberforge is **daily-first for research**, with a
-read-only adapter (`emberforge.data.loaders.load_geld_bars`) that maps Geld's
-5Min `Bar` rows into Emberforge panels (VWAP approximated as `(H+L+C)/3`, since
-Geld stores none). The adapter opens Geld's SQLite in read-only mode
-(`file:...?mode=ro`) and imports nothing from `geld.*`.
-
-## Verifying the read-only adapter
-
-`emberforge.data.load_geld_bars` is exercised end-to-end against a database built
-with Geld's **exact** `market_bars` schema in `tests/test_geld_adapter.py`
-(self-contained, no external data), which also proves the connection is
-genuinely read-only (a `mode=ro` write raises, and the file is byte-identical
-before/after). `examples/geld_adapter_smoke.py` runs the same check against a
-*real* Geld database:
-
-```bash
-python examples/geld_adapter_smoke.py [path/to/geld.sqlite3] [TIMEFRAME]
+data = load_geld_csv(
+    "/path/to/project-geld/artifacts/research-broad/selected-bars.csv.gz",
+    frequency="daily", feed="sip", adjustment="all",
+)
 ```
 
-Note: Geld's real `market_bars` table is **empty today** — Geld only caches bars
-after a successful Alpaca fetch, which needs credentials and a live run. Until
-then the smoke script skips cleanly. The adapter is verified against the schema
-regardless.
+Supply feed/adjustment only when verified from the source run. The CLI form
+below is for daily bars and records both as unknown because a CSV alone does
+not prove them. No VWAP is invented, and duplicate timestamp/symbol rows fail.
 
-## Bundle schema bridge (the two projects diverged)
+```text
+emberforge data validate --geld-csv /path/to/selected-bars.csv.gz
+emberforge pipeline run --geld-csv /path/to/selected-bars.csv.gz --families momentum --no-approve
+```
 
-Geld independently built its own bundle contract, **`candidate_bundle_v1`**
-(`geld/candidates/validator.py`): a single JSON with `signal_spec`,
-`required_inputs`, `frequency ∈ {1Min,5Min,15Min,1Day}`, `lookback`, and
-`approval_status ∈ {draft,approved,rejected}`. Emberforge's *native* bundle is a
-folder with different field names, so it does **not** satisfy Geld's validator
-as-is.
+The legacy `load_geld_bars` SQLite adapter remains available in read-only mode
+for old `market_bars` databases. That is not the current cache layout. Intraday
+analytics need explicit frequency, annualization and execution assumptions.
 
-`emberforge.export.geld_bundle` bridges them — it maps an Emberforge candidate onto
-`candidate_bundle_v1` (daily → `1Day`, the synthesized `returns` field → `close`,
-`auto_approved` → `approved`, plus a portfolio-construction hint and an evaluation
-summary). Emberforge still **never imports Geld** — the contract is mirrored, kept
-in sync by hand. The pipeline emits `geld_bundles/<id>.candidate.json` per
-survivor, and `examples/verify_against_geld.py` cross-checks them against Geld's
-*real* validator (they pass).
+## Offline handoff
 
-Note: even after Geld imports a bundle, its importer only **quarantines** it
-(research-only) — nothing is auto-enabled, and Geld's live loop still trades only
-the strategies in `config.yaml`. Turning an imported factor into live signals
-would need a factor executor on the Geld side, which does not exist yet.
+1. Review the native bundle, recorded evidence and approval state.
+2. `from_native_bundle` independently verifies it before format conversion.
+3. `export_geld_bundle_v1` writes a data-only JSON candidate.
+4. Geld validates and imports it into quarantine with paper disabled. Re-import
+   cannot erase an existing record's state/history.
+5. Geld rechecks schema, approval and expression integrity, then applies its
+   independent OOS/cost gates and optional batch FDR to supplied market data.
+6. Passing candidates may advance to order-free shadow. Paper promotion remains
+   a separate manual step within Geld; Emberforge cannot perform it.
 
-## The boundary — what may cross it
+Unsupported frequencies are not silently relabeled. Actual preprocessing is
+retained. An Emberforge long/short diagnostic and Geld's default long-only
+candidate strategy are different portfolios, so their returns are not
+interchangeable. `auto_approved` records programmatic screening, not human
+approval or untouched holdout success.
 
-**One way, offline, manual only.** Emberforge → Geld communication is a
-versioned, checksummed candidate bundle
-([`CANDIDATE_BUNDLE.md`](CANDIDATE_BUNDLE.md)) that a human copies over and Geld
-may later validate by hand. There are **no** API calls, shared databases, git
-hooks, or brokerage integrations. Nothing about Emberforge changes what Geld
-trades. Enforced by `tests/test_geld_boundary.py`:
-
-* Emberforge imports nothing from `geld.*`.
-* The Geld adapter opens SQLite read-only (`mode=ro`).
-* The pipeline writes only under its own output directory.
+See [the audit](AUDIT_2026-09-13.md) for remaining statistical and data limitations.

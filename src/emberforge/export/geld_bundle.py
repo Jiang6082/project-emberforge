@@ -24,7 +24,7 @@ GELD_ALLOWED_INPUTS = {"open", "high", "low", "close", "volume", "vwap"}
 GELD_ALLOWED_FREQ = {"1Min", "5Min", "15Min", "1Day"}
 GELD_ALLOWED_APPROVAL = {"draft", "approved", "rejected"}
 
-_FREQ_MAP = {"daily": "1Day", "1Min": "1Min", "5Min": "5Min", "15Min": "15Min"}
+_FREQ_MAP = {"daily": "1Day", "1Day": "1Day", "1Min": "1Min", "5Min": "5Min", "15Min": "15Min"}
 # Emberforge's synthesized 'returns' field derives from close; map it back.
 _INPUT_MAP = {"returns": "close"}
 _APPROVAL_MAP = {"human_approved": "approved", "auto_approved": "approved"}
@@ -61,7 +61,10 @@ def to_geld_bundle_v1(
     stable). When omitted it falls back to the current UTC time, preserving the
     old behaviour for direct callers.
     """
-    freq = _FREQ_MAP.get(factor.get("intended_frequency", "daily"), "1Day")
+    frequency = factor.get("intended_frequency", "daily")
+    if frequency not in _FREQ_MAP:
+        raise ValueError(f"Geld does not support factor frequency {frequency!r}; resampling must be explicit")
+    freq = _FREQ_MAP[frequency]
     pb = metrics.get("portfolio_backtest") or {}
     bundle = {
         "bundle_schema_version": GELD_SCHEMA_VERSION,
@@ -80,7 +83,7 @@ def to_geld_bundle_v1(
         "approval_status": _APPROVAL_MAP.get(approval_state, "draft"),
         "created_at": created_at or datetime.now(UTC).isoformat(),
         "universe_assumptions": data_provenance.get("universe", "research-only"),
-        "preprocessing": {"winsorize": True, "cross_sectional_zscore": True},
+        "preprocessing": metrics.get("preprocessing") or {"winsorize": True, "cross_sectional_zscore": True},
         "portfolio_construction": metrics.get("portfolio_spec") or {},
         "evaluation_summary": {
             "mean_ic": metrics.get("mean_ic"),
@@ -109,6 +112,10 @@ def to_geld_bundle_v1(
 
 def from_native_bundle(bundle_dir: str | Path, approval_state: str = "auto_approved") -> dict:
     """Convert an already-exported Emberforge native bundle folder to v1 JSON."""
+    from .validator import validate_bundle
+    validation = validate_bundle(bundle_dir)
+    if not validation.ok:
+        raise ValueError(f"native bundle validation failed: {validation.problems}")
     d = Path(bundle_dir)
     factor = json.loads((d / "factor.json").read_text(encoding="utf-8"))
     evaluation = json.loads((d / "evaluation.json").read_text(encoding="utf-8"))

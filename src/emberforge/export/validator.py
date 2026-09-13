@@ -43,7 +43,8 @@ def validate_bundle(bundle_dir: str | Path) -> BundleValidation:
         problems.append(msg)
 
     # 1) required files present
-    required = ["manifest.json", "factor.json", "checksums.txt"]
+    required = ["manifest.json", "factor.json", "checksums.txt", "evaluation.json",
+                "lineage.json", "data_provenance.json", "hypothesis.md", "report.md"]
     missing = [f for f in required if not (out / f).exists()]
     if missing:
         fail("files_present", f"missing bundle files: {missing}")
@@ -60,14 +61,19 @@ def validate_bundle(bundle_dir: str | Path) -> BundleValidation:
     try:
         factor = json.loads((out / "factor.json").read_text(encoding="utf-8"))
         manifest = json.loads((out / "manifest.json").read_text(encoding="utf-8"))
-    except json.JSONDecodeError as e:
+    except (ValueError, OSError, UnicodeError) as e:
         fail("json_parses", f"bundle JSON is invalid: {e}")
         return BundleValidation(False, checks, problems)
     checks["json_parses"] = True
+    if not isinstance(factor, dict) or not isinstance(manifest, dict):
+        fail("json_objects", "factor and manifest must be JSON objects")
+        return BundleValidation(False, checks, problems)
+    if not isinstance(factor.get("candidate_id"), str) or factor.get("candidate_id") != manifest.get("candidate_id"):
+        fail("candidate_id_matches", "manifest and factor candidate_id must agree")
 
     # 4) schema version supported (check both factor and manifest)
-    versions = {factor.get("schema_version"), manifest.get("schema_version")}
-    if not versions <= SUPPORTED_SCHEMA_VERSIONS:
+    versions = [factor.get("schema_version"), manifest.get("schema_version")]
+    if any(not isinstance(v, str) or v not in SUPPORTED_SCHEMA_VERSIONS for v in versions):
         fail("schema_supported",
              f"unsupported schema version(s) {versions}; supported: {sorted(SUPPORTED_SCHEMA_VERSIONS)} "
              f"(this validator targets {BUNDLE_SCHEMA_VERSION})")
@@ -75,7 +81,7 @@ def validate_bundle(bundle_dir: str | Path) -> BundleValidation:
         checks["schema_supported"] = True
 
     # 5) approval state (human sign-off or automated promotion — both are valid)
-    if manifest.get("approval_state") not in APPROVAL_STATES:
+    if not isinstance(manifest.get("approval_state"), str) or manifest["approval_state"] not in APPROVAL_STATES:
         fail("approved",
              f"approval_state is {manifest.get('approval_state')!r}, expected one of {sorted(APPROVAL_STATES)}")
     else:
@@ -117,7 +123,7 @@ def validate_bundle(bundle_dir: str | Path) -> BundleValidation:
         else:
             checks["hash_matches"] = True
         # the manifest's hash must agree with the factor's
-        if manifest.get("expression_hash") not in (None, recomputed_hash):
+        if manifest.get("expression_hash") != recomputed_hash:
             fail("manifest_hash_matches",
                  "manifest expression_hash disagrees with the recomputed hash")
         else:

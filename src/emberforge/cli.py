@@ -15,10 +15,12 @@ from . import __version__
 
 
 def _load_data(args):
-    from .data import load_csv_dir, make_synthetic
+    from .data import load_csv_dir, load_geld_csv, make_synthetic
 
     if getattr(args, "csv_dir", None):
         return load_csv_dir(args.csv_dir)
+    if getattr(args, "geld_csv", None):
+        return load_geld_csv(args.geld_csv)
     return make_synthetic(seed=getattr(args, "seed", 7))
 
 
@@ -176,11 +178,7 @@ def cmd_export_geld_bundle(args) -> int:
 def cmd_pipeline_run(args) -> int:
     from .pipeline import run_pipeline
 
-    data = None
-    if getattr(args, "csv_dir", None):
-        from .data import load_csv_dir
-
-        data = load_csv_dir(args.csv_dir)
+    data = _load_data(args)
     provider = None
     if getattr(args, "ai", None) == "mock":
         from .generate import MockProvider
@@ -214,7 +212,9 @@ def build_parser() -> argparse.ArgumentParser:
     sub = p.add_subparsers(dest="command", required=True)
 
     def add_data_opts(sp):
-        sp.add_argument("--csv-dir", default=None, help="load CSV panels instead of synthetic data")
+        source = sp.add_mutually_exclusive_group()
+        source.add_argument("--csv-dir", default=None, help="load CSV panels instead of synthetic data")
+        source.add_argument("--geld-csv", default=None, help="read Geld long-form daily CSV/CSV.gz bars")
         sp.add_argument("--seed", type=int, default=7)
 
     d = sub.add_parser("data", help="data commands").add_subparsers(dest="sub", required=True)
@@ -268,8 +268,7 @@ def build_parser() -> argparse.ArgumentParser:
     plr = pl.add_parser("run", help="generate → evaluate → auto-export survivors → HTML report")
     plr.add_argument("--out", default="runtime/pipeline")
     plr.add_argument("--families", default=None, help="comma-separated template families")
-    plr.add_argument("--csv-dir", default=None, help="use CSV panels instead of synthetic data")
-    plr.add_argument("--seed", type=int, default=7)
+    add_data_opts(plr)
     plr.add_argument("--ai", choices=["mock", "anthropic"], default=None)
     plr.add_argument("--ai-model", default="claude-opus-5")
     plr.add_argument("--n-ai", dest="n_ai", type=int, default=0, help="number of AI candidates to request")

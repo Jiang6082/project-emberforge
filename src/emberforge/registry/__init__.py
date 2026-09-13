@@ -11,6 +11,7 @@ from __future__ import annotations
 import json
 import sqlite3
 import uuid
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
@@ -90,10 +91,15 @@ class ExperimentRegistry:
         with self._conn() as c:
             c.executescript(_SCHEMA)
 
-    def _conn(self) -> sqlite3.Connection:
+    @contextmanager
+    def _conn(self):
         conn = sqlite3.connect(self.path)
         conn.row_factory = sqlite3.Row
-        return conn
+        try:
+            with conn:
+                yield conn
+        finally:
+            conn.close()
 
     # -- writing -------------------------------------------------------------
     def record(self, rec: ExperimentRecord) -> str:
@@ -171,6 +177,20 @@ class ExperimentRegistry:
             if experiment_id:
                 c.execute("UPDATE experiments SET holdout_viewed=1 WHERE experiment_id=?", (experiment_id,))
             return int(cur.lastrowid)
+
+    def reserve_holdout_access(self, family, experiment_id, reason, *, cap, hard=True) -> int:
+        """Check the cap and record access in one serialized transaction."""
+        from .holdout import BudgetExceeded
+        with self._conn() as c:
+            c.execute("BEGIN IMMEDIATE")
+            prior = int(c.execute("SELECT COUNT(*) FROM holdout_access WHERE family=?", (family,)).fetchone()[0])
+            if hard and prior >= cap:
+                raise BudgetExceeded(f"locked-test access #{prior + 1} for family {family!r} exceeds cap ({cap})")
+            c.execute("INSERT INTO holdout_access (family, experiment_id, accessed_at, reason) VALUES (?,?,?,?)",
+                      (family, experiment_id, datetime.now(UTC).isoformat(), reason))
+            if experiment_id:
+                c.execute("UPDATE experiments SET holdout_viewed=1 WHERE experiment_id=?", (experiment_id,))
+            return prior
 
     def holdout_access_count(self, family: str) -> int:
         with self._conn() as c:

@@ -19,9 +19,19 @@ class Adjusted:
     reject: bool
 
 
+def _validated_pvalues(pvalues, alpha):
+    if not np.isfinite(alpha) or not 0 < alpha < 1:
+        raise ValueError("alpha must be finite and in (0, 1)")
+    p = np.asarray(pvalues, dtype=float)
+    if p.ndim != 1:
+        raise ValueError("pvalues must be one-dimensional")
+    # A missing/invalid result remains a trial but carries no evidence.
+    return np.where(np.isfinite(p) & (p >= 0) & (p <= 1), p, 1.0)
+
+
 def benjamini_hochberg(pvalues: list[float], alpha: float = 0.05) -> list[Adjusted]:
     """Benjamini–Hochberg step-up FDR control at level ``alpha``."""
-    p = np.asarray(pvalues, dtype=float)
+    p = _validated_pvalues(pvalues, alpha)
     m = len(p)
     order = np.argsort(p)
     ranked = p[order]
@@ -36,7 +46,7 @@ def benjamini_hochberg(pvalues: list[float], alpha: float = 0.05) -> list[Adjust
 
 def holm(pvalues: list[float], alpha: float = 0.05) -> list[Adjusted]:
     """Holm–Bonferroni step-down FWER control at level ``alpha``."""
-    p = np.asarray(pvalues, dtype=float)
+    p = _validated_pvalues(pvalues, alpha)
     m = len(p)
     order = np.argsort(p)
     ranked = p[order]

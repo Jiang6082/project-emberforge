@@ -42,6 +42,27 @@ def load_parquet(path: str | Path, source: str = "local_parquet") -> MarketData:
     return MarketData(panels, DatasetMetadata(source=source, feed="local"))
 
 
+def load_geld_csv(path: str | Path, *, frequency: str = "daily", feed: str = "unknown",
+                  adjustment: str = "unknown") -> MarketData:
+    """Read Geld's current long-form CSV/CSV.gz bars without modifying them.
+
+    Caller-supplied feed/adjustment are explicit because the CSV alone does not
+    establish them. VWAP is carried only if present, never approximated.
+    """
+    frame = pd.read_csv(path)
+    required = {"timestamp", "symbol", "open", "high", "low", "close", "volume"}
+    missing = required - set(frame.columns)
+    if missing:
+        raise ValueError(f"Geld CSV is missing columns: {sorted(missing)}")
+    frame["timestamp"] = pd.to_datetime(frame["timestamp"], utc=True, errors="raise")
+    if frame["symbol"].isna().any() or frame.duplicated(["timestamp", "symbol"]).any():
+        raise ValueError("Geld CSV requires non-missing symbols and unique timestamp/symbol rows")
+    panels = {name: frame.pivot(index="timestamp", columns="symbol", values=name)
+              for name in ("open", "high", "low", "close", "volume", "vwap") if name in frame}
+    return MarketData(panels, DatasetMetadata(source="project_geld_csv_readonly", frequency=frequency,
+                                              feed=feed, adjustment=adjustment))
+
+
 def load_geld_bars(
     sqlite_path: str | Path,
     timeframe: str = "5Min",
