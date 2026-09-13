@@ -2,8 +2,11 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-**An AI-assisted platform for discovering quantitative trading factors — built to
-stop you from fooling yourself.**
+**A Python factor-research system with a constrained expression language, an SQLite experiment registry, and checksummed candidate exports.**
+
+[Interactive walkthrough](https://jiang6082.github.io/projects/emberforge/) · [Architecture](docs/ARCHITECTURE.md) · [Portfolio](https://jiang6082.github.io/)
+
+For a code review, start with the [DSL parser](src/emberforge/dsl/parser.py), [property-based DSL tests](tests/test_dsl_properties.py), [holdout governance](src/emberforge/registry/holdout.py), and [independent export validator](src/emberforge/export/validator.py). The core runs offline; an LLM provider is optional. The walkthrough's threshold controls use invented p-values, separately labeled from the recorded synthetic research demo.
 
 Emberforge helps you invent, test, and vet *factors* (systematic signals that try
 to predict which stocks will outperform). The hard part of factor research isn't
@@ -55,34 +58,31 @@ Research hypothesis
    → Offline, checksummed export bundle
 ```
 
-Every candidate, failed experiment, and mutation is written to an SQLite
+Every candidate, failed experiment, and mutation is written to a SQLite
 registry. The point of the system is the **record of everything tried** — that's
-what makes the one survivor trustworthy.
+what lets a reviewer audit how a survivor was selected.
 
 ---
 
-## See it work in 60 seconds
+## Run the synthetic demo
 
 ```bash
-git clone <this repo> && cd project-emberforge
-python -m venv .venv && source .venv/bin/activate
+git clone https://github.com/Jiang6082/project-emberforge.git
+cd project-emberforge
+python -m venv .venv
+# macOS/Linux: source .venv/bin/activate
+# Windows PowerShell: .venv\Scripts\Activate.ps1
 pip install -e ".[dev]"
 pytest                       # full suite, no network / credentials / external data
 python -m emberforge.demo    # full research run on deterministic synthetic data
 ```
 
 **Development.** Run the fast core (skips the end-to-end / bootstrap-heavy tests)
-with `pytest -m "not slow"` (~30s); lint with `ruff check .`.
+with `pytest -m "not slow"`; lint with `ruff check .`. Installation, tests, and the demo can take several minutes depending on the environment.
 
-The demo plants a *known* momentum effect in synthetic data, then throws 24
-candidates at it — the real momentum factor, near-duplicates, and noise. It
-correctly:
+The demo plants a known momentum effect in synthetic data, then evaluates the configured candidates, including near-duplicates and other factor families. It records every attempt, labels candidate decisions, and exports a survivor as a checksummed bundle.
 
-* **keeps** the genuine factor (`momentum_20`: IC t-stat 4.7, survives FDR),
-* **rejects** the noise factors,
-* **flags** the duplicates,
-* records all 24 attempts, and
-* exports the single survivor as a human-approved, checksummed bundle.
+The [September 13, 2026 demo snapshot](docs/DEMO_SNAPSHOT.md) recorded **36 candidates: one survivor (`momentum_20`), 24 duplicates, and 11 rejected candidates**, with bundle checksums verified. These are synthetic-demo outcomes, not evidence of market alpha. Approval is preconfigured in the demo code; in a research workflow, a person must review the candidate before approving an export.
 
 Output lands in `runtime/demo/`:
 
@@ -190,7 +190,9 @@ standalone bundle validator that independently re-parses/re-checks an exported
 candidate, vectorized analytics (~14× faster quantiles), and property-based DSL
 fuzzing (Hypothesis).
 
-**140 tests passing.** See [ROADMAP.md](docs/ROADMAP.md).
+Run `pytest` for the current suite, or `pytest -m "not slow"` for the core checks. Counts and timings depend on the checkout and environment.
+
+**CI status:** the repository currently contains a workflow template at `ci.github-workflow.yml`, outside `.github/workflows/`. It is not an active GitHub Actions workflow. The local test commands above remain the verification entry point. See [ROADMAP.md](docs/ROADMAP.md).
 
 ## Disclaimer
 
