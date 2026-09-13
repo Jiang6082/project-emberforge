@@ -8,6 +8,7 @@ warning or (past a hard cap) blocks.
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 
 import pandas as pd
@@ -38,7 +39,12 @@ class DataSplit:
 
 def split_by_fraction(index: pd.DatetimeIndex, train: float = 0.6, valid: float = 0.2) -> DataSplit:
     n = len(index)
-    return DataSplit(train_end=index[int(n * train) - 1], valid_end=index[int(n * (train + valid)) - 1])
+    if not (math.isfinite(train) and math.isfinite(valid) and train > 0 and valid > 0 and train + valid < 1):
+        raise ValueError("train and valid fractions must be positive and sum to less than 1")
+    first, second = int(n * train), int(n * (train + valid))
+    if not 0 < first < second < n or not index.is_monotonic_increasing or index.has_duplicates:
+        raise ValueError("split requires sorted, unique timestamps and non-empty train, valid and test partitions")
+    return DataSplit(train_end=index[first - 1], valid_end=index[second - 1])
 
 
 @dataclass
@@ -70,7 +76,9 @@ class HoldoutGovernor:
     def access_locked_test(self, experiment_id: str | None, reason: str, hard: bool = True) -> list[str]:
         """Record a locked-test access; return warnings. Blocks past the cap when
         ``hard`` is True."""
-        prior = self.registry.holdout_access_count(self.family)
+        prior = self.registry.reserve_holdout_access(
+            self.family, experiment_id, reason, cap=self.budget.max_holdout_access, hard=hard
+        )
         warnings: list[str] = []
         if prior >= self.budget.max_holdout_access:
             msg = (
@@ -85,5 +93,4 @@ class HoldoutGovernor:
                 f"locked test already viewed {prior} time(s) for family {self.family!r}; "
                 "further tuning against it inflates selection bias"
             )
-        self.registry.record_holdout_access(self.family, experiment_id, reason)
         return warnings

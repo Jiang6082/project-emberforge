@@ -22,6 +22,7 @@ from .export import export_candidate, export_geld_bundle_v1, from_native_bundle,
 from .generate import generate_ai, generate_templates
 from .generate.templates import TEMPLATES
 from .registry import ExperimentRegistry
+from .registry.holdout import split_by_fraction
 from .report import candidate_report_md, family_report_html, family_report_md
 from .research import run_family_study
 from .research.decision import DecisionState
@@ -58,8 +59,18 @@ def run_pipeline(
     out = Path(out_dir)
     (out / "reports").mkdir(parents=True, exist_ok=True)
     data = data if data is not None else make_synthetic(seed=seed)
-    families = [f for f in (families or list(TEMPLATES)) if f in TEMPLATES]
+    families = list(dict.fromkeys(families if families is not None else list(TEMPLATES)))
+    unknown = set(families) - set(TEMPLATES)
+    if unknown or not families:
+        raise ValueError(f"select at least one supported family; unknown families: {sorted(unknown)}")
+    # Reserve the final 20% before generating or evaluating any candidates.
+    # Labels are computed only within the development subset, so its last bar
+    # cannot borrow a forward return from the locked test.
+    split = split_by_fraction(data.index)
+    locked_test_start = data.index[data.index > split.valid_end][0]
+    data = data.subset_by_date(end=split.valid_end)
     registry = ExperimentRegistry(registry_path or out / "registry.sqlite3", repo_root=repo_root)
+    recorded_before = len(registry.list())
 
     # One study per *search family* — multiple-testing is scoped per family, so a
     # factor is judged against its own kind (momentum vs. reversal are distinct).
@@ -84,7 +95,7 @@ def run_pipeline(
 
     # aggregate dashboards — Markdown and the nice HTML — across all families
     rows = [r.report for r in results]
-    trial_count = len(results)
+    trial_count = len(registry.list()) - recorded_before
     (out / "family_report.md").write_text(family_report_md(family_name, rows), encoding="utf-8")
     (out / "report.html").write_text(family_report_html(
         family_name, rows,
@@ -115,7 +126,7 @@ def run_pipeline(
                 approved=True,
                 approval_state="auto_approved",
                 trial_count=r.report.get("trial_count", trial_count),
-                holdout_views=0,  # the pipeline never touches the locked test
+                holdout_views=registry.holdout_access_count(registry.get(r.experiment_id)["family"]),
                 repo_root=repo_root,
             )
             ok = validate_bundle(bundle_dir).ok
@@ -131,13 +142,17 @@ def run_pipeline(
     summary = {
         "family": family_name,
         "families": families,
-        "n_candidates": len(results),
+        "n_candidates": trial_count,
+        "n_evaluated": len(results),
         "n_recorded": len(registry.list()),
         "survivors": survivors,
         "exported": exported,
         "report_html": str(out / "report.html"),
         "family_report_md": str(out / "family_report.md"),
         "out_dir": str(out),
+        "development_end": str(split.valid_end),
+        "locked_test_start": str(locked_test_start),
+        "evaluation_scope": "development_only; locked test reserved, not evaluated",
     }
     (out / "summary.json").write_text(json.dumps(summary, indent=2, default=str), encoding="utf-8")
     return summary

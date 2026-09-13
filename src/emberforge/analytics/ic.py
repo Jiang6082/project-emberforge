@@ -16,14 +16,14 @@ import pandas as pd
 
 def ic_series(scores: pd.DataFrame, fwd_returns: pd.DataFrame, method: str = "pearson") -> pd.Series:
     s = scores.reindex_like(fwd_returns)
-    out = {}
-    for ts in s.index:
-        a = s.loc[ts]
-        b = fwd_returns.loc[ts]
-        pair = pd.concat([a, b], axis=1).dropna()
-        if len(pair) >= 3:
-            out[ts] = pair.iloc[:, 0].corr(pair.iloc[:, 1], method=method)
-    return pd.Series(out, dtype=float).dropna()
+    valid = np.isfinite(s) & np.isfinite(fwd_returns)
+    a, b = s.where(valid), fwd_returns.where(valid)
+    if method == "spearman":
+        # Rank after pairwise masking: missing labels must not influence ranks.
+        a, b = a.rank(axis=1), b.rank(axis=1)
+        method = "pearson"
+    out = a.corrwith(b, axis=1, method=method)
+    return out.where(valid.sum(axis=1) >= 3).dropna()
 
 
 @dataclass(frozen=True)

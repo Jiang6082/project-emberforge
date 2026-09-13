@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 
 import pandas as pd
 
@@ -52,6 +52,7 @@ class FactorEvaluation:
     cost_sensitivity: dict = field(default_factory=dict)
     portfolio_spec: dict = field(default_factory=dict)
     portfolio_backtest: dict = field(default_factory=dict)
+    preprocessing: dict = field(default_factory=dict)
 
     def to_metrics(self) -> dict:
         """Flat, JSON-serializable metric dict for the registry and reports."""
@@ -74,6 +75,7 @@ class FactorEvaluation:
             "cost_sensitivity": self.cost_sensitivity,
             "portfolio_spec": self.portfolio_spec,
             "portfolio_backtest": self.portfolio_backtest,
+            "preprocessing": self.preprocessing,
             "ic_decay": self.ic_decay,
         }
 
@@ -99,6 +101,7 @@ def evaluate_factor(
     if universe is not None:
         eligibility = universe.eligibility(data.index, data.symbols)
     scores = compute_factor(spec, data, preprocess, eligibility=eligibility)
+    scores = scores * (-1.0 if spec.expected_sign < 0 else 1.0)
     fwd = data.forward_returns(horizon)
     # one CostModel drives the headline net Sharpe, capacity, and cost sensitivity.
     cost_model = CostModel()
@@ -115,7 +118,7 @@ def evaluate_factor(
         recent = dollar_vol.tail(adv_window)                  # trailing window → current liquidity
         adv_series = recent.median(axis=0).dropna()
         adv_per_name = adv_series.values                      # per-symbol recent ADV ($)
-        vol_per_name = data.field("close").pct_change().tail(adv_window).std(axis=0)
+        vol_per_name = data.field("close").pct_change(fill_method=None).tail(adv_window).std(axis=0)
         vol_per_name = vol_per_name.reindex(adv_series.index).values
         if adv_per_name.size == 0:
             adv_per_name, vol_per_name = float("nan"), None
@@ -141,4 +144,5 @@ def evaluate_factor(
         cost_sensitivity={str(k): v for k, v in cost_sens.items()},
         portfolio_spec=pspec.to_dict(),
         portfolio_backtest=pbt.to_dict(),
+        preprocessing=asdict(preprocess),
     )

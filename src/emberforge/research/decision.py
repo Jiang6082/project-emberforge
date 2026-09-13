@@ -8,6 +8,7 @@ turnover, and trial count all gate promotion. No candidate is ever labelled
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass, field
 from enum import Enum
 
@@ -59,6 +60,13 @@ def decide(
     if is_duplicate:
         return DecisionResult(factor_id, DecisionState.DUPLICATE, ["duplicate of an existing factor"])
 
+    for name in ("ic_t_stat", "mean_ic", "turnover"):
+        value = metrics.get(name)
+        if not isinstance(value, (int, float)) or not math.isfinite(value):
+            reasons.append(f"missing or non-finite {name}")
+    if reasons:
+        return DecisionResult(factor_id, DecisionState.REJECTED_DEV, reasons)
+
     t = abs(metrics.get("ic_t_stat") or 0.0)
     mic = abs(metrics.get("mean_ic") or 0.0)
     tvr = metrics.get("turnover")
@@ -73,9 +81,11 @@ def decide(
         return DecisionResult(factor_id, DecisionState.REJECTED_DEV, reasons)
 
     # robustness / selection-bias gates
-    if criteria.require_fdr_reject and fdr_reject is False:
+    if criteria.require_fdr_reject and not fdr_reject:
         reasons.append("does not survive Benjamini–Hochberg FDR at the family level")
-    if dsr is not None and dsr == dsr and dsr < criteria.min_dsr:
+    if dsr is None or not math.isfinite(dsr):
+        reasons.append("missing or non-finite Deflated Sharpe")
+    elif dsr < criteria.min_dsr:
         reasons.append(f"Deflated Sharpe {dsr:.2f} < {criteria.min_dsr} (given trial count)")
     if nearest_corr is not None and nearest_corr == nearest_corr and abs(nearest_corr) > criteria.max_correlation:
         reasons.append(f"correlated {nearest_corr:.2f} with an existing factor")

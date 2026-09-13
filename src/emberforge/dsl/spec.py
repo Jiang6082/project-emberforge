@@ -8,6 +8,7 @@ pipeline, so an invalid factor can never exist as a ``FactorSpec``.
 
 from __future__ import annotations
 
+import re
 from datetime import UTC, datetime
 from typing import Literal
 
@@ -61,8 +62,10 @@ class FactorSpec(BaseModel):
     @field_validator("factor_id")
     @classmethod
     def _non_empty_id(cls, v: str) -> str:
-        if not v.strip():
-            raise ValueError("factor_id must be non-empty")
+        reserved = {"CON", "PRN", "AUX", "NUL", *{f"{p}{i}" for p in ("COM", "LPT") for i in range(1, 10)}}
+        if (not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,119}", v)
+                or v.endswith(".") or v.split(".")[0].upper() in reserved):
+            raise ValueError("factor_id must be a non-empty portable filename component")
         return v
 
     @model_validator(mode="after")

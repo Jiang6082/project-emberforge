@@ -69,6 +69,10 @@ def run_family_study(
 ) -> FamilyStudy:
     from ..report import candidate_report_dict  # local import avoids report<->research cycle
 
+    ids = [s.factor_id for s in specs]
+    if len(set(ids)) != len(ids):
+        raise ValueError("factor_id values must be unique within a study")
+
     eligibility = universe.eligibility(data.index, data.symbols) if universe is not None else None
     universe_fp = universe.fingerprint if universe is not None else data.metadata.fingerprint
 
@@ -116,8 +120,11 @@ def run_family_study(
     # 2) family-level multiple testing on IC t-stat p-values
     pvals = [ic_pvalue(r.evaluation.ic.t_stat, r.evaluation.ic.n) for r in results]
     pvals = [p if p == p else 1.0 for p in pvals]  # NaN -> 1.0
-    bh = benjamini_hochberg(pvals)
-    hl = holm(pvals)
+    # Invalid attempts and historical trials stay in the family denominator.
+    # Assign unavailable evidence p=1; never reset the penalty on another run.
+    family_pvals = pvals + [1.0] * max(0, n_trials - len(results))
+    bh = benjamini_hochberg(family_pvals)[:len(results)]
+    hl = holm(family_pvals)[:len(results)]
 
     # 3) PBO across the family from aligned LS return series
     ls_frame = pd.DataFrame({r.spec.factor_id: r.evaluation.ls_returns for r in results}).dropna()
